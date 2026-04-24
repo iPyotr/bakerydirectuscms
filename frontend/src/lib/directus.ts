@@ -38,10 +38,15 @@ export interface DirectusSchema {
   }>;
   globals: {
     brand_name: string;
+    legal_name?: string | null;
+    inn?: string | null;
     phone: string;
+    email?: string | null;
     address: string;
     address_short?: string | null;
     working_hours: string;
+    about_short?: string | null;
+    about_long?: string | null;
     location?: { lat?: number | null; lng?: number | null; zoom?: number | null } | null;
     social?: Record<string, string | undefined> | null;
     app_links?: Record<string, string | undefined> | null;

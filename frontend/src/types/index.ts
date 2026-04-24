@@ -40,10 +40,15 @@ export interface GeoLocation {
 
 export interface Globals {
   brandName: string;
+  legalName?: string;
+  inn?: string;
   phone: string;
+  email?: string;
   address: string;
   addressShort: string;
   workingHours: string;
+  aboutShort?: string;
+  aboutLong?: string;
   location?: GeoLocation;
   social: {
     vk?: string;

@@ -69,20 +69,28 @@ export async function fetchCategories(): Promise<Category[]> {
   }
 }
 
+function filterMockProducts(options?: {
+  category?: string;
+  limit?: number;
+  slugs?: string[];
+}): Product[] {
+  let list = mockProducts;
+  if (options?.category) list = list.filter((p) => p.categorySlug === options.category);
+  if (options?.slugs?.length) {
+    list = options.slugs
+      .map((s) => list.find((p) => p.slug === s))
+      .filter((p): p is Product => Boolean(p));
+  }
+  if (options?.limit) list = list.slice(0, options.limit);
+  return list;
+}
+
 export async function fetchProducts(options?: {
   category?: string;
   limit?: number;
   slugs?: string[];
 }): Promise<Product[]> {
-  if (!USE_DIRECTUS) {
-    let list = mockProducts;
-    if (options?.category) list = list.filter((p) => p.categorySlug === options.category);
-    if (options?.slugs?.length) list = options.slugs
-      .map((s) => list.find((p) => p.slug === s))
-      .filter((p): p is Product => Boolean(p));
-    if (options?.limit) list = list.slice(0, options.limit);
-    return list;
-  }
+  if (!USE_DIRECTUS) return filterMockProducts(options);
   try {
     const rows = (await directus.request(
       readItems("products", {
@@ -100,7 +108,9 @@ export async function fetchProducts(options?: {
     if (process.env.NODE_ENV !== "production") {
       console.warn("[api.fetchProducts] Directus failed, using mocks", error);
     }
-    return mockProducts;
+    // Bugfix: fallback must honour the same filters so /product/[slug] doesn't
+    // always resolve to mockProducts[0].
+    return filterMockProducts(options);
   }
 }
 
@@ -119,10 +129,15 @@ export async function fetchGlobals(): Promise<Globals> {
     const row = await directus.request(readSingleton("globals"));
     return {
       brandName: row.brand_name,
+      legalName: row.legal_name ?? undefined,
+      inn: row.inn ?? undefined,
       phone: row.phone,
+      email: row.email ?? undefined,
       address: row.address,
       addressShort: row.address_short ?? row.address,
       workingHours: row.working_hours,
+      aboutShort: row.about_short ?? undefined,
+      aboutLong: row.about_long ?? undefined,
       location:
         row.location?.lat != null && row.location?.lng != null
           ? { lat: row.location.lat, lng: row.location.lng, zoom: row.location.zoom ?? 16 }

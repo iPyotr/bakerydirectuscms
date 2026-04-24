@@ -46,8 +46,8 @@ export function Footer({
               className="h-7 md:h-8 w-auto mb-5"
             />
             <p className="text-[#d3c7b0] text-sm leading-relaxed max-w-sm">
-              Пекарня, кулинария и собственное производство в Казани с 2013 года. Свежая выпечка
-              каждое утро, домашняя кухня и полуфабрикаты ручной лепки.
+              {globals.aboutShort ??
+                "Пекарня, кулинария и собственное производство в Казани. Свежая выпечка каждое утро и полуфабрикаты ручной лепки."}
             </p>
             <div className="mt-5 flex flex-col gap-2 text-sm">
               <a
@@ -66,11 +66,11 @@ export function Footer({
                 {globals.workingHours}
               </span>
               <a
-                href="mailto:hello@delovkusa.ru"
+                href={`mailto:${globals.email ?? "hello@delovkusa.ru"}`}
                 className="inline-flex items-center gap-2 text-[#d3c7b0] hover:text-gold transition-colors"
               >
                 <MailIcon size={18} />
-                hello@delovkusa.ru
+                {globals.email ?? "hello@delovkusa.ru"}
               </a>
             </div>
           </div>

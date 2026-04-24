@@ -31,8 +31,11 @@ export default async function ContactsPage() {
           </div>
           <div className="flex items-center gap-3">
             <MailIcon />
-            <a href="mailto:hello@delovkusa.ru" className="font-semibold">
-              hello@delovkusa.ru
+            <a
+              href={`mailto:${globals.email ?? "hello@delovkusa.ru"}`}
+              className="font-semibold"
+            >
+              {globals.email ?? "hello@delovkusa.ru"}
             </a>
           </div>
           <div className="flex items-center gap-3">
