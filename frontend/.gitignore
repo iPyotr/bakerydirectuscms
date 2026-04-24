@@ -4,6 +4,9 @@
 /node_modules
 /.pnp
 .pnp.*
+
+# image optimization backup (contains originals before conversion to WebP)
+.image-backup/
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
