@@ -171,6 +171,8 @@ services:
       DIRECTUS_USE_FALLBACK_MOCKS: ${DIRECTUS_USE_FALLBACK_MOCKS:-false}
       # Публичный URL сайта — метаданные, OG, sitemap, robots.
       SITE_URL: ${SITE_URL:-https://delovkusa.openlabio.ru}
+      # Секрет для /api/revalidate (Directus Flow использует его для purge ISR).
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET}
     ports:
       # Caddy проксирует на 192.168.1.166:${FRONTEND_HOST_PORT}
       - "${FRONTEND_HOST_PORT:-8380}:3000"

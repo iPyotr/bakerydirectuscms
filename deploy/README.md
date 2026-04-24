@@ -110,6 +110,7 @@ DATABASE_SSL=true                # для managed-PG обычно обязате
 ```bash
 openssl rand -hex 32   # → DIRECTUS_KEY
 openssl rand -hex 32   # → DIRECTUS_SECRET
+openssl rand -hex 24   # → REVALIDATE_SECRET
 ```
 
 Подставить в env стека в Portainer (не коммитить).
@@ -208,6 +209,43 @@ delovkusa.openlabio.ru {
 ## Смена runtime-переменных без пересборки
 
 Любую переменную (DIRECTUS_PUBLIC_URL, USE_DIRECTUS, SMTP_*, CORS_ORIGIN, ADMIN_PASSWORD…) можно править в Portainer UI и **Update the stack** — образ не пересобирается, сервисы перезапускаются за секунды.
+
+## Seed Directus (после первого запуска стека)
+
+Нужно один раз наполнить Directus коллекциями, данными и настроить permissions + Flow для revalidate.
+
+1. Авторизуйтесь в админке (`/directus/admin`), **View my profile → Token → Generate → Save**.
+2. Положите в корневой `.env.local`:
+   ```
+   DIRECTUS_URL=https://delovkusa.openlabio.ru/directus
+   DIRECTUS_ADMIN_TOKEN=<your token>
+   SITE_URL=https://delovkusa.openlabio.ru
+   REVALIDATE_SECRET=<same as in Portainer>
+   ```
+3. `cd frontend && pnpm seed`
+
+Что сделает:
+- создаст коллекции `categories`, `products`, `globals` с UUID PK;
+- зальёт 34 изображения (категории, слайдеры, товары, логотипы);
+- заполнит 6 категорий и 23 товара;
+- настроит Public role с минимальными read-правами (только `status=published`, без служебных полей);
+- создаст Directus Flow `Revalidate Next.js cache` — на `items.create/update/delete` в `categories`/`products`/`globals` дёргает `https://delovkusa.openlabio.ru/api/revalidate?secret=…`.
+
+Идемпотентно — можно запускать повторно.
+
+## Schema snapshot
+
+Хранить схему в git:
+```bash
+cd frontend && pnpm schema:snapshot
+# → обновляет deploy/directus-snapshot.json
+```
+
+Восстановить на новом инстансе:
+```bash
+# внутри контейнера bakery_directus
+npx directus schema apply /path/to/directus-snapshot.json
+```
 
 ## Откат
 

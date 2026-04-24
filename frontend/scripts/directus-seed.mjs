@@ -17,12 +17,22 @@ import {
   staticToken,
   createCollection,
   createField,
+  createFlow,
+  createOperation,
+  createPermission,
   createRelation,
+  deleteFlow,
+  deletePermission,
   readCollections,
   readFieldsByCollection,
+  readFlows,
   readItems,
+  readPermissions,
+  readPolicies,
   createItems,
   updateCollection,
+  updateFlow,
+  updatePermission,
   updateSingleton,
   readSingleton,
   uploadFiles,
@@ -499,6 +509,166 @@ async function uploadIfMissing(localPath, folderLabel, mime = "image/webp") {
   return Array.isArray(res) ? res[0]?.id : res.id;
 }
 
+// --------------------- public permissions ---------------------
+const publicPermissions = [
+  {
+    collection: "categories",
+    action: "read",
+    fields: ["id", "slug", "title", "subtitle", "image", "slider_image", "products_count", "sort"],
+    permissions: { status: { _eq: "published" } },
+  },
+  {
+    collection: "products",
+    action: "read",
+    fields: [
+      "id",
+      "slug",
+      "title",
+      "category",
+      "price",
+      "old_price",
+      "weight",
+      "tag",
+      "available",
+      "image",
+      "description",
+      "sort",
+    ],
+    permissions: { status: { _eq: "published" } },
+  },
+  {
+    collection: "globals",
+    action: "read",
+    fields: [
+      "brand_name",
+      "legal_name",
+      "phone",
+      "email",
+      "address",
+      "address_short",
+      "working_hours",
+      "about_short",
+      "about_long",
+      "location",
+      "social",
+      "app_links",
+    ],
+    permissions: null,
+  },
+  {
+    collection: "directus_files",
+    action: "read",
+    fields: [
+      "id",
+      "storage",
+      "filename_download",
+      "type",
+      "width",
+      "height",
+      "title",
+      "description",
+      "focal_point_x",
+      "focal_point_y",
+    ],
+    permissions: null,
+  },
+];
+
+async function ensurePublicPermissions() {
+  console.log("\n[seed] ==== PUBLIC PERMISSIONS ====");
+  // Find Public policy
+  const policies = await client.request(
+    readPolicies({ fields: ["id", "name", "icon"], limit: -1 }),
+  );
+  const publicPolicy = policies.find(
+    (p) => p.icon === "public" || /public/i.test(p.name ?? ""),
+  );
+  if (!publicPolicy) {
+    console.warn("[seed]   ! Public policy not found, skipping permissions");
+    return;
+  }
+
+  const existing = await client.request(
+    readPermissions({
+      filter: { policy: { _eq: publicPolicy.id } },
+      limit: -1,
+      fields: ["id", "collection", "action"],
+    }),
+  );
+  const byKey = new Map(existing.map((p) => [`${p.collection}:${p.action}`, p]));
+
+  for (const p of publicPermissions) {
+    const key = `${p.collection}:${p.action}`;
+    const found = byKey.get(key);
+    const payload = { ...p, policy: publicPolicy.id };
+    if (found) {
+      await client.request(updatePermission(found.id, payload));
+      console.log(`[seed]   ~ updated public.${key}`);
+    } else {
+      await client.request(createPermission(payload));
+      console.log(`[seed]   + created public.${key}`);
+    }
+  }
+}
+
+// --------------------- revalidate flow ---------------------
+async function ensureRevalidateFlow() {
+  const siteUrl = process.env.SITE_URL;
+  const secret = process.env.REVALIDATE_SECRET;
+  if (!siteUrl || !secret) {
+    console.log(
+      "\n[seed] ==== REVALIDATE FLOW ==== SKIP (SITE_URL / REVALIDATE_SECRET not set)",
+    );
+    return;
+  }
+
+  console.log("\n[seed] ==== REVALIDATE FLOW ====");
+  const flows = await client.request(
+    readFlows({ filter: { name: { _eq: "Revalidate Next.js cache" } }, limit: 1 }),
+  );
+  for (const f of flows) {
+    await client.request(deleteFlow(f.id));
+    console.log(`[seed]   - dropped existing flow ${f.id}`);
+  }
+
+  const flow = await client.request(
+    createFlow({
+      name: "Revalidate Next.js cache",
+      icon: "refresh",
+      color: "#00C897",
+      description: "Дёргает /api/revalidate при изменении контента",
+      status: "active",
+      trigger: "event",
+      accountability: "all",
+      options: {
+        type: "action",
+        scope: ["items.create", "items.update", "items.delete"],
+        collections: ["categories", "products", "globals"],
+      },
+    }),
+  );
+  console.log(`[seed]   + flow ${flow.id}`);
+
+  const op = await client.request(
+    createOperation({
+      flow: flow.id,
+      name: "Call /api/revalidate",
+      key: "revalidate_request",
+      type: "request",
+      position_x: 19,
+      position_y: 1,
+      options: {
+        method: "POST",
+        url: `${siteUrl}/api/revalidate?secret=${secret}`,
+        body: "{{$trigger}}",
+        headers: [{ header: "Content-Type", value: "application/json" }],
+      },
+    }),
+  );
+  await client.request(updateFlow(flow.id, { operation: op.id }));
+  console.log(`[seed]   + operation ${op.id} wired as entry`);
+}
+
 // --------------------- main ---------------------
 async function main() {
   await login();
@@ -644,6 +814,10 @@ async function main() {
     await client.request(updateSingleton("globals", globalsData));
     console.log("[seed] ✓ globals populated");
   }
+
+  // 6) Public permissions + revalidate flow
+  await ensurePublicPermissions();
+  await ensureRevalidateFlow();
 
   console.log("\n[seed] DONE ✨");
 }
