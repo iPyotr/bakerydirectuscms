@@ -1,6 +1,6 @@
 "use client";
 
-import { MailRuMark, VkMark, YandexMark } from "@/components/ui/icon";
+import { GoogleMark, MailRuMark, VkMark, YandexMark } from "@/components/ui/icon";
 
 const providers = [
   {
@@ -20,6 +20,12 @@ const providers = [
     label: "Войти через Mail.ru",
     mark: <MailRuMark />,
     bg: "bg-[#005ff9] text-white hover:bg-[#0051d6]",
+  },
+  {
+    id: "google",
+    label: "Войти через Google",
+    mark: <GoogleMark />,
+    bg: "bg-white text-[#1f1f1f] hover:bg-[#f2f2f2] border border-black/10",
   },
 ];
 

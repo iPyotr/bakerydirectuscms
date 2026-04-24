@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const ALLOWED_PROVIDERS = new Set(["yandex", "vk", "mailru"]);
+const ALLOWED_PROVIDERS = new Set(["yandex", "vk", "mailru", "google"]);
 
 export async function GET(
   request: NextRequest,
