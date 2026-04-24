@@ -27,31 +27,111 @@ const caveat = Caveat({
   display: "swap",
 });
 
+const siteUrl = process.env.SITE_URL ?? "https://delovkusa.openlabio.ru";
+const siteName = "Дело вкуса";
+const siteDescription =
+  "Ремесленная пекарня и собственное производство в Казани: хлеб, сытная и сладкая выпечка, курица гриль, шаурма и полуфабрикаты ручной лепки. Свежая выпечка каждый день, удобный самовывоз.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
-    default: "Дело вкуса — пекарня, кулинария и полуфабрикаты в Казани",
-    template: "%s · Дело вкуса",
+    default: `${siteName} — пекарня, кулинария и полуфабрикаты в Казани`,
+    template: `%s · ${siteName}`,
   },
-  description:
-    "Ремесленная пекарня и собственное производство: хлеб, сытная и сладкая выпечка, курица гриль, шаурма, пельмени ручной лепки.",
-  metadataBase: new URL("https://delovkusa.openlabio.ru"),
-  applicationName: "Дело вкуса",
-  authors: [{ name: "Дело вкуса" }],
+  description: siteDescription,
+  applicationName: siteName,
+  authors: [{ name: siteName }],
+  creator: siteName,
+  publisher: siteName,
+  keywords: [
+    "пекарня казань",
+    "свежая выпечка",
+    "хлеб казань",
+    "курица гриль",
+    "шаурма казань",
+    "пельмени ручной лепки",
+    "самовывоз выпечка",
+    "дело вкуса",
+  ],
+  category: "food",
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     type: "website",
     locale: "ru_RU",
-    siteName: "Дело вкуса",
+    url: siteUrl,
+    siteName,
+    title: `${siteName} — свежая выпечка каждый день`,
+    description: siteDescription,
+    // Картинка подхватывается из app/opengraph-image.tsx автоматически.
   },
+  twitter: {
+    card: "summary_large_image",
+    title: `${siteName} — свежая выпечка каждый день`,
+    description: siteDescription,
+    // Картинка — app/twitter-image.tsx.
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  // Для Telegram и ВК достаточно стандартных OG-тегов — они парсят `og:*`.
+  // Yandex тоже уважает OG. Отдельные `yandex-verification` можно добавить
+  // в meta.verification если нужно подтверждение в Вебмастере.
+  // verification: { yandex: "...", google: "..." },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#efebe6",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#eae6e1" },
+    { media: "(prefers-color-scheme: dark)", color: "#1b1714" },
+  ],
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const [categories, globals] = await Promise.all([fetchCategories(), fetchGlobals()]);
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Bakery",
+    name: globals.brandName,
+    description: siteDescription,
+    url: siteUrl,
+    telephone: globals.phone,
+    email: "hello@delovkusa.ru",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Казань",
+      streetAddress: "ул. Гвардейская, 54",
+      addressCountry: "RU",
+    },
+    ...(globals.location && {
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: globals.location.lat,
+        longitude: globals.location.lng,
+      },
+    }),
+    openingHours: "Mo-Su 08:00-20:00",
+    servesCuisine: ["Bakery", "Russian", "Fast Food"],
+    image: `${siteUrl}/opengraph-image`,
+    priceRange: "₽₽",
+    sameAs: [
+      globals.social?.vk,
+      globals.social?.telegram,
+      globals.social?.instagram,
+    ].filter(Boolean),
+  };
 
   return (
     <html
@@ -65,6 +145,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <Footer categories={categories} globals={globals} />
           <MobileTabBar />
         </QueryProvider>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </body>
     </html>
   );

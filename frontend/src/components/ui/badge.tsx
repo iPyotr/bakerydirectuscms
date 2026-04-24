@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { ProductTag } from "@/types";
 
@@ -30,7 +33,11 @@ export function Badge({ tag, className }: { tag: ProductTag; className?: string 
 }
 
 export function Counter({ count, className }: { count: number; className?: string }) {
-  if (count <= 0) return null;
+  // Cart is persisted in localStorage via Zustand — hydrate on client only
+  // to avoid SSR / client mismatch on initial render.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted || count <= 0) return null;
   return (
     <span
       className={cn(

@@ -167,6 +167,8 @@ services:
       # Public URL с префиксом — то, что видит браузер и использует для картинок/SSO.
       DIRECTUS_PUBLIC_URL: ${DIRECTUS_PUBLIC_URL}
       USE_DIRECTUS: ${USE_DIRECTUS:-true}
+      # Публичный URL сайта — метаданные, OG, sitemap, robots.
+      SITE_URL: ${SITE_URL:-https://delovkusa.openlabio.ru}
     ports:
       # Caddy проксирует на 192.168.1.166:${FRONTEND_HOST_PORT}
       - "${FRONTEND_HOST_PORT:-8380}:3000"

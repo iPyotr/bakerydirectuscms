@@ -33,10 +33,13 @@ const navLinks = [
 export function Header({ categories, globals }: HeaderProps) {
   const totalItems = useCart((s) => s.totalItems());
   const totalPrice = useCart((s) => s.totalPrice());
+  const [mounted, setMounted] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
   const lastY = useRef(0);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const onScroll = () => {
@@ -141,7 +144,7 @@ export function Header({ categories, globals }: HeaderProps) {
                   <Counter count={totalItems} />
                 </span>
                 <span className="tabular-nums whitespace-nowrap">
-                  {totalItems > 0 ? formatPrice(totalPrice) : "Корзина"}
+                  {mounted && totalItems > 0 ? formatPrice(totalPrice) : "Корзина"}
                 </span>
               </Link>
             </div>
