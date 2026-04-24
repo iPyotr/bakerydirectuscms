@@ -5,9 +5,13 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   images: {
+    // Next.js /_next/image blocks upstreams that resolve to private IPs as an
+    // SSRF protection. Our Directus lives behind Caddy on an internal network
+    // (192.168.1.x), so we bypass Next.js optimization and let Directus serve
+    // transformed WebP/AVIF directly via ?width=&format= query params.
+    unoptimized: true,
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
-      // Directus через Caddy — один домен с префиксом /directus/
       {
         protocol: "https",
         hostname: "delovkusa.openlabio.ru",

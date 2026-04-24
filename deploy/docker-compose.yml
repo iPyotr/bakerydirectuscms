@@ -167,6 +167,8 @@ services:
       # Public URL с префиксом — то, что видит браузер и использует для картинок/SSO.
       DIRECTUS_PUBLIC_URL: ${DIRECTUS_PUBLIC_URL}
       USE_DIRECTUS: ${USE_DIRECTUS:-true}
+      # При ошибке Directus показывать моки (true) или падать (false)
+      DIRECTUS_USE_FALLBACK_MOCKS: ${DIRECTUS_USE_FALLBACK_MOCKS:-false}
       # Публичный URL сайта — метаданные, OG, sitemap, robots.
       SITE_URL: ${SITE_URL:-https://delovkusa.openlabio.ru}
     ports:

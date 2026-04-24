@@ -5,50 +5,54 @@
  *
  * Usage:
  *   DIRECTUS_URL=https://delovkusa.openlabio.ru/directus \
- *   ADMIN_EMAIL=admin@delovkusa.ru \
- *   ADMIN_PASSWORD=BakeryAdmin2026! \
+ *   DIRECTUS_ADMIN_TOKEN=... \
  *   pnpm seed
+ *
+ * Or put those vars in .env.local at repo root — the package.json script
+ * preloads ../.env.local automatically via node --env-file-if-exists.
  */
 import {
   createDirectus,
-  authentication,
   rest,
+  staticToken,
   createCollection,
   createField,
   createRelation,
   readCollections,
-  readFields,
+  readFieldsByCollection,
   readItems,
   createItems,
+  updateCollection,
   updateSingleton,
   readSingleton,
   uploadFiles,
 } from "@directus/sdk";
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const root = resolve(scriptDir, "..");
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL;
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+// Accept multiple common names (and a known typo in case-insensitive form).
+const ADMIN_TOKEN =
+  process.env.DIRECTUS_ADMIN_TOKEN ||
+  process.env.ADMIN_TOKEN ||
+  process.env.direstus_admin_token;
 
-if (!DIRECTUS_URL || !ADMIN_EMAIL || !ADMIN_PASSWORD) {
+if (!DIRECTUS_URL || !ADMIN_TOKEN) {
   console.error(
-    "[seed] Missing env vars. Required: DIRECTUS_URL, ADMIN_EMAIL, ADMIN_PASSWORD",
+    "[seed] Missing env vars. Required: DIRECTUS_URL, DIRECTUS_ADMIN_TOKEN",
   );
   process.exit(1);
 }
 
-const client = createDirectus(DIRECTUS_URL).with(authentication("json")).with(rest());
+const client = createDirectus(DIRECTUS_URL).with(staticToken(ADMIN_TOKEN)).with(rest());
 
 async function login() {
-  console.log(`[seed] Logging in to ${DIRECTUS_URL} as ${ADMIN_EMAIL}…`);
-  await client.login(ADMIN_EMAIL, ADMIN_PASSWORD);
-  console.log("[seed] ✓ authenticated");
+  console.log(`[seed] Using static admin token against ${DIRECTUS_URL}`);
 }
 
 // --------------------- schema helpers ---------------------
@@ -59,21 +63,29 @@ async function getExistingCollections() {
 
 async function getExistingFieldsFor(collection) {
   try {
-    const fields = await client.request(readFields(collection));
+    const fields = await client.request(readFieldsByCollection(collection));
     return new Set(fields.map((f) => f.field));
   } catch {
     return new Set();
   }
 }
 
-async function ensureCollection(definition) {
+async function ensureCollection(definition, initialFields = []) {
   const existing = await getExistingCollections();
   if (existing.has(definition.collection)) {
-    console.log(`[seed] collection ${definition.collection} exists, skipping`);
+    console.log(`[seed] collection ${definition.collection} exists, skipping create`);
+    // Add any missing fields (for incremental schema changes).
+    for (const f of initialFields) await ensureField(definition.collection, f);
     return;
   }
-  await client.request(createCollection(definition));
-  console.log(`[seed] ✓ created collection ${definition.collection}`);
+  // Create with full field set in a single POST — guarantees a UUID primary
+  // key and correct field order.
+  await client.request(
+    createCollection({ ...definition, fields: initialFields }),
+  );
+  console.log(
+    `[seed] ✓ created collection ${definition.collection} (${initialFields.length} fields)`,
+  );
 }
 
 async function ensureField(collection, definition) {
@@ -84,29 +96,18 @@ async function ensureField(collection, definition) {
 }
 
 // --------------------- schema definitions ---------------------
+// Don't put sort_field / archive_field in initial meta — Directus would
+// auto-create stub fields without our custom interface settings. We set them
+// via updateCollection AFTER the real status/sort fields are in place.
 const categoriesCollection = {
   collection: "categories",
-  meta: {
-    icon: "category",
-    note: "Категории товаров",
-    sort_field: "sort",
-    archive_field: "status",
-    archive_value: "archived",
-    unarchive_value: "published",
-  },
+  meta: { icon: "category", note: "Категории товаров" },
   schema: { name: "categories" },
 };
 
 const productsCollection = {
   collection: "products",
-  meta: {
-    icon: "bakery_dining",
-    note: "Товары",
-    sort_field: "sort",
-    archive_field: "status",
-    archive_value: "archived",
-    unarchive_value: "published",
-  },
+  meta: { icon: "bakery_dining", note: "Товары" },
   schema: { name: "products" },
 };
 
@@ -118,6 +119,23 @@ const globalsCollection = {
     singleton: true,
   },
   schema: { name: "globals" },
+};
+
+// UUID primary key — per AGENTS.md "UUID в качестве первичных ключей".
+const idField = {
+  field: "id",
+  type: "uuid",
+  meta: {
+    hidden: true,
+    readonly: true,
+    interface: "input",
+    special: ["uuid"],
+  },
+  schema: {
+    is_primary_key: true,
+    has_auto_increment: false,
+    length: 36,
+  },
 };
 
 const statusField = {
@@ -446,7 +464,7 @@ const globalsData = {
 };
 
 // --------------------- file upload helper ---------------------
-async function uploadIfMissing(localPath, folderLabel) {
+async function uploadIfMissing(localPath, folderLabel, mime = "image/webp") {
   if (!existsSync(localPath)) {
     console.warn(`[seed]   ! file not found: ${localPath}`);
     return null;
@@ -467,11 +485,13 @@ async function uploadIfMissing(localPath, folderLabel) {
   }
   const data = await readFile(localPath);
   const form = new FormData();
-  form.append("title", basename(filename, ".webp"));
-  form.append("folder", "");
+  const dotIdx = filename.lastIndexOf(".");
+  const titleBase = dotIdx > 0 ? filename.slice(0, dotIdx) : filename;
+  form.append("title", titleBase);
+  // Do NOT append an empty "folder" string — Directus treats "" as invalid UUID.
   form.append(
     "file",
-    new Blob([data], { type: "image/webp" }),
+    new Blob([data], { type: mime }),
     filename,
   );
   const res = await client.request(uploadFiles(form));
@@ -485,14 +505,31 @@ async function main() {
 
   // 1) Schema
   console.log("\n[seed] ==== SCHEMA ====");
-  await ensureCollection(categoriesCollection);
-  for (const f of categoryFields) await ensureField("categories", f);
+  await ensureCollection(categoriesCollection, [idField, ...categoryFields]);
+  await ensureCollection(productsCollection, [idField, ...productFields]);
+  // globals is a singleton — Directus expects a regular auto-increment id,
+  // no uuid needed.
+  await ensureCollection(globalsCollection, globalsFields);
 
-  await ensureCollection(productsCollection);
-  for (const f of productFields) await ensureField("products", f);
-
-  await ensureCollection(globalsCollection);
-  for (const f of globalsFields) await ensureField("globals", f);
+  // Wire sort/archive meta AFTER the fields exist so Directus doesn't try
+  // to auto-create stub columns at collection-create time.
+  for (const col of ["categories", "products"]) {
+    try {
+      await client.request(
+        updateCollection(col, {
+          meta: {
+            sort_field: "sort",
+            archive_field: "status",
+            archive_value: "archived",
+            unarchive_value: "published",
+          },
+        }),
+      );
+      console.log(`[seed]   set sort_field + archive_field on ${col}`);
+    } catch (e) {
+      console.warn(`[seed] could not update meta for ${col}:`, e?.errors?.[0]?.message ?? e);
+    }
+  }
 
   // Relation products.category -> categories.id
   try {
@@ -510,6 +547,19 @@ async function main() {
 
   // 2) Upload images
   console.log("\n[seed] ==== FILES ====");
+
+  // Brand/logos (SVG + OG PNG-preview)
+  const logos = [
+    { path: "public/ico/brand-mark.svg", mime: "image/svg+xml" },
+    { path: "public/ico/logo.svg", mime: "image/svg+xml" },
+    { path: "public/ico/logo-exact.svg", mime: "image/svg+xml" },
+    { path: "public/ico/logo-preview.png", mime: "image/png" },
+  ];
+  for (const l of logos) {
+    const p = resolve(root, l.path);
+    if (existsSync(p)) await uploadIfMissing(p, "logos", l.mime);
+  }
+
   const categoryImageIds = {}; // slug -> { image, slider_image }
   for (const c of categoriesData) {
     categoryImageIds[c.slug] = {};

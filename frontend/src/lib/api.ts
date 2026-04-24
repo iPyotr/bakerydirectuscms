@@ -5,6 +5,22 @@ import { mockCategories, mockGlobals, mockHeroSlides, mockPopularSlugs, mockProd
 import { directus, directusFile } from "./directus";
 
 const USE_DIRECTUS = process.env.USE_DIRECTUS === "true";
+// By default failed Directus requests fall back to mock data so UI never breaks.
+// Set DIRECTUS_USE_FALLBACK_MOCKS=false in production to surface API outages
+// instead of silently masking them.
+const USE_FALLBACK_MOCKS = process.env.DIRECTUS_USE_FALLBACK_MOCKS !== "false";
+
+function handleDirectusError(error: unknown, context: string): never | undefined {
+  if (!USE_FALLBACK_MOCKS) {
+    throw error instanceof Error
+      ? error
+      : new Error(`[api.${context}] Directus request failed`);
+  }
+  if (process.env.NODE_ENV !== "production") {
+    console.warn(`[api.${context}] Directus failed, using mocks`, error);
+  }
+  return undefined;
+}
 
 function transformCategory(row: {
   id: string;
@@ -62,9 +78,7 @@ export async function fetchCategories(): Promise<Category[]> {
     );
     return rows.map(transformCategory);
   } catch (error) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("[api.fetchCategories] Directus failed, using mocks", error);
-    }
+    handleDirectusError(error, "fetchCategories");
     return mockCategories;
   }
 }
@@ -105,9 +119,7 @@ export async function fetchProducts(options?: {
     )) as Parameters<typeof transformProduct>[0][];
     return rows.map(transformProduct);
   } catch (error) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("[api.fetchProducts] Directus failed, using mocks", error);
-    }
+    handleDirectusError(error, "fetchProducts");
     // Bugfix: fallback must honour the same filters so /product/[slug] doesn't
     // always resolve to mockProducts[0].
     return filterMockProducts(options);
@@ -146,9 +158,7 @@ export async function fetchGlobals(): Promise<Globals> {
       appLinks: row.app_links ?? {},
     };
   } catch (error) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("[api.fetchGlobals] Directus failed, using mocks", error);
-    }
+    handleDirectusError(error, "fetchGlobals");
     return mockGlobals;
   }
 }
