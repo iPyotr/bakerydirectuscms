@@ -7,16 +7,11 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
+      // Directus через Caddy — один домен с префиксом /directus/
       {
         protocol: "https",
-        hostname: "admin.delovkusa.openlabio.ru",
-        pathname: "/assets/**",
-      },
-      {
-        protocol: "http",
-        hostname: "192.168.1.214",
-        port: "9000",
-        pathname: "/bakarybucket/**",
+        hostname: "delovkusa.openlabio.ru",
+        pathname: "/directus/assets/**",
       },
     ],
   },

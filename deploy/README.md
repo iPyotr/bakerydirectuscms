@@ -5,34 +5,35 @@
 ## Архитектура
 
 ```
-                  ┌───────────────────────────────────┐
-                  │  Deploy node · stack "bakery"     │
-                  │                                   │
-                  │     ┌────────────────────┐        │
-                  │     │  bakery_postgres   │        │
-                  │     │   (postgres:17)    │        │
-                  │     │  volume: *_data    │        │
-                  │     └─────────▲──────────┘        │
-                  │               │ bakery_net        │
-                  │     ┌─────────┴──────────┐        │
-                  │     │  bakery_directus   │◄─ admin│
-                  │     │   (directus:11)    │        │
-                  │     │  files → volume    │        │
-                  │     │  cache → memory    │        │
-                  │     └─────────▲──────────┘        │
-                  │               │                   │
-                  │     ┌─────────┴──────────┐        │
-                  │     │  bakery_frontend   │◄─ www  │
-                  │     │   (Next.js 16)     │        │
-                  │     └────────────────────┘        │
-                  │        ▲     "web" network        │
-                  │        │                          │
-                  │     ┌──┴───┐                      │
-                  │     │ Caddy│                      │
-                  │     └──────┘                      │
-                  └───────────────────────────────────┘
-
-GitHub push → Actions → ghcr.io/.../bakerydirectuscms-frontend → Portainer webhook
+   https://delovkusa.openlabio.ru
+                 │
+          ┌──────┴──────┐
+          │    Caddy    │ (внешний, не в docker)
+          └──────┬──────┘
+                 │
+      ┌──────────┼──────────────┐
+      │          │              │
+ catch-all   /directus/*  (handle_path срезает префикс)
+      │          │
+      │          ▼
+      │   192.168.1.166:8256 ──────┐
+      ▼                            ▼
+  192.168.1.166:8280     ┌──────────────────────┐
+      │                   │ Docker stack "bakery" │
+      │                   │  bakery_net          │
+      ▼                   │                      │
+ ┌────────────────┐       │  ┌───────────────┐   │
+ │bakery_frontend │─────► │  │bakery_directus│   │
+ │ (Next.js 16)   │ internal │  (directus:11)│   │
+ │  :3000         │       │  │   :8055       │   │
+ └────────────────┘       │  └───────┬───────┘   │
+                          │          │           │
+                          │  ┌───────┴───────┐   │
+                          │  │bakery_postgres│   │
+                          │  │ (postgres:17) │   │
+                          │  │   :5432       │   │
+                          │  └───────────────┘   │
+                          └──────────────────────┘
 ```
 
 ## Контейнеры / сервисы в стеке
@@ -90,13 +91,9 @@ DATABASE_SSL=true                # для managed-PG обычно обязате
 
 ## Первая установка
 
-### 1. Сеть Caddy на deploy-ноде (один раз)
+### 1. Сеть
 
-```bash
-docker network create web
-```
-
-Caddy должен быть в этой же сети, чтобы проксировать на `bakery_frontend:3000` и `bakery_directus:8055`.
+Стек использует только **внутреннюю** сеть `bakery_net` (для связи Postgres ↔ Directus ↔ Frontend). Caddy находится вне docker и проксирует на IP хоста (`192.168.1.166:8280` и `:8256`), поэтому внешняя `web` сеть не нужна.
 
 ### 2. GHCR visibility
 
@@ -127,15 +124,16 @@ openssl rand -hex 32   # → DIRECTUS_SECRET
 6. **Automatic updates:** `Webhook` (скопировать URL → в GitHub secret `PORTAINER_WEBHOOK_URL`)
 7. **Environment variables** — заполнить по [.env.example](./.env.example):
 
-   **Images & network:**
-   - `FRONTEND_IMAGE`, `FRONTEND_IMAGE_TAG`, `DIRECTUS_VERSION`, `WEB_NETWORK=web`, `FRONTEND_HOST_PORT=3000`
+   **Images & порты:**
+   - `FRONTEND_IMAGE`, `FRONTEND_IMAGE_TAG`, `DIRECTUS_VERSION`
+   - `FRONTEND_HOST_PORT=8280`, `DIRECTUS_HOST_PORT=8256`
 
    **Directus (критично, секреты):**
-   - `DIRECTUS_PUBLIC_URL=https://admin.delovkusa.openlabio.ru`
+   - `DIRECTUS_PUBLIC_URL=https://delovkusa.openlabio.ru/directus`  **(с префиксом!)**
    - `DIRECTUS_KEY`, `DIRECTUS_SECRET` (generate!)
-   - `ADMIN_EMAIL`, `ADMIN_PASSWORD` — логин/пароль **первого админа** (bootstrap на пустой БД; этими кредами вы зайдёте в `/admin`)
+   - `ADMIN_EMAIL`, `ADMIN_PASSWORD` — логин/пароль **первого админа** (bootstrap на пустой БД; зайдёте в `https://delovkusa.openlabio.ru/directus/admin`)
    - `ADMIN_TOKEN` — опциональный API-токен для скриптов (можно оставить пустым)
-   - `REFRESH_TOKEN_COOKIE_DOMAIN=.delovkusa.openlabio.ru`, `SESSION_COOKIE_DOMAIN=.delovkusa.openlabio.ru`
+   - `REFRESH_TOKEN_COOKIE_DOMAIN=delovkusa.openlabio.ru`, `SESSION_COOKIE_DOMAIN=delovkusa.openlabio.ru` (без ведущей точки)
 
    **Postgres:**
    - `COMPOSE_PROFILES=internal-db` (или пусто для внешнего PG)
@@ -154,23 +152,53 @@ openssl rand -hex 32   # → DIRECTUS_SECRET
 
 8. **Deploy the stack**
 
-### 6. Caddy
+### 6. Caddy (один домен, Directus на префиксе `/directus/`)
+
+Caddy **вне docker-сети стека** — проксирует на IP хоста по портам:
+- `FRONTEND_HOST_PORT` (default 8380) → Next.js
+- `DIRECTUS_HOST_PORT` (default 8356) → Directus; префикс `/directus/` срезается
 
 `Caddyfile`:
 
 ```caddy
 delovkusa.openlabio.ru {
-  encode zstd gzip
-  reverse_proxy bakery_frontend:3000
-}
+    import geoblock
+    import error_pages
 
-admin.delovkusa.openlabio.ru {
-  encode zstd gzip
-  reverse_proxy bakery_directus:8055
+    # Directus API / админка. handle_path срезает префикс /directus/
+    handle_path /directus/* {
+        reverse_proxy 192.168.1.166:8356
+    }
+
+    # Frontend catch-all после handle_path
+    handle {
+        reverse_proxy 192.168.1.166:8380
+    }
+
+    # Агрессивный кеш для хешированных ассетов Directus
+    @assets path /directus/assets/*
+    header @assets Cache-Control "public, max-age=31536000, immutable"
+
+    encode
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options    "nosniff"
+        Referrer-Policy           "strict-origin-when-cross-origin"
+        -Server
+    }
 }
 ```
 
-Caddy в сети `web`. Альтернатива — `caddy-docker-proxy`: раскомментируйте `labels:` в [docker-compose.yml](./docker-compose.yml).
+> **Про `@assets`**: в вашем исходном конфиге было `path /assets/*` — он применяется ДО `handle_path`, поэтому матчил бы только несуществующий путь. Правильно — `/directus/assets/*`.
+
+**Точки входа после деплоя:**
+
+| URL | Куда попадает |
+|---|---|
+| `https://delovkusa.openlabio.ru/` | Next.js фронт |
+| `https://delovkusa.openlabio.ru/directus/admin` | Админка Directus |
+| `https://delovkusa.openlabio.ru/directus/items/products` | API Directus |
+| `https://delovkusa.openlabio.ru/directus/assets/<uuid>` | Ассеты из MinIO/local |
 
 ## Обновление фронта
 

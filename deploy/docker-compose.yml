@@ -50,6 +50,7 @@ services:
       # Core
       KEY: ${DIRECTUS_KEY}
       SECRET: ${DIRECTUS_SECRET}
+      # PUBLIC_URL содержит префикс /directus — Caddy срезает его через handle_path.
       PUBLIC_URL: ${DIRECTUS_PUBLIC_URL}
 
       # Admin bootstrap — применяется только при первом запуске пустой БД.
@@ -68,9 +69,6 @@ services:
       DB_USER: ${DATABASE_USERNAME}
       DB_PASSWORD: ${DATABASE_PASSWORD}
       DB_SSL: ${DATABASE_SSL:-false}
-      DB_POOL__MIN: ${DB_POOL_MIN:-5}
-      DB_POOL__MAX: ${DB_POOL_MAX:-50}
-      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-30000}
 
       # Cache — in-memory (single instance)
       CACHE_ENABLED: ${CACHE_ENABLED:-true}
@@ -104,7 +102,7 @@ services:
       EMAIL_FROM: ${SMTP_FROM_EMAIL}
       EMAIL_FROM_NAME: ${SMTP_FROM_NAME}
 
-      # Auth cookies (prod cross-subdomain)
+      # Auth cookies — один домен (не поддомены), поэтому без ведущей точки.
       REFRESH_TOKEN_COOKIE_SECURE: "true"
       REFRESH_TOKEN_COOKIE_SAME_SITE: "Lax"
       REFRESH_TOKEN_COOKIE_DOMAIN: ${REFRESH_TOKEN_COOKIE_DOMAIN}
@@ -121,6 +119,9 @@ services:
       ASSETS_TRANSFORM_IMAGE_MAX_DIMENSION: ${ASSETS_TRANSFORM_IMAGE_MAX_DIMENSION:-2048}
 
       # Misc
+      DB_POOL__MIN: ${DB_POOL_MIN:-5}
+      DB_POOL__MAX: ${DB_POOL_MAX:-50}
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-30000}
       PUBLIC_REGISTER: ${PUBLIC_REGISTER:-false}
       TELEMETRY: ${TELEMETRY:-false}
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -130,7 +131,9 @@ services:
       - bakery_directus_extensions:/directus/extensions
     networks:
       - bakery_net
-      - web
+    ports:
+      # Caddy проксирует на 192.168.1.166:${DIRECTUS_HOST_PORT}
+      - "${DIRECTUS_HOST_PORT:-8356}:8055"
     healthcheck:
       test:
         - CMD-SHELL
@@ -144,11 +147,6 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
-    # Uncomment labels for caddy-docker-proxy on the `web` network.
-    # labels:
-    #   caddy: ${DIRECTUS_HOSTNAME:-admin.delovkusa.openlabio.ru}
-    #   caddy.reverse_proxy: "{{upstreams 8055}}"
-    #   caddy.encode: "zstd gzip"
 
   # ---------------- Frontend (Next.js) ----------------
   bakery_frontend:
@@ -164,16 +162,16 @@ services:
       PORT: "3000"
       HOSTNAME: "0.0.0.0"
       NEXT_TELEMETRY_DISABLED: "1"
-      # Internal URL — server-to-server fetch inside Docker network
+      # Internal URL — server-to-server fetch через docker-сеть (никаких Caddy).
       DIRECTUS_URL: http://bakery_directus:8055
-      # Public URL — browser (asset links, SSO redirect)
+      # Public URL с префиксом — то, что видит браузер и использует для картинок/SSO.
       DIRECTUS_PUBLIC_URL: ${DIRECTUS_PUBLIC_URL}
       USE_DIRECTUS: ${USE_DIRECTUS:-true}
     ports:
-      - "${FRONTEND_HOST_PORT:-3000}:3000"
+      # Caddy проксирует на 192.168.1.166:${FRONTEND_HOST_PORT}
+      - "${FRONTEND_HOST_PORT:-8380}:3000"
     networks:
       - bakery_net
-      - web
     healthcheck:
       test:
         - CMD
@@ -189,11 +187,6 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
-    # Uncomment labels for caddy-docker-proxy on the `web` network.
-    # labels:
-    #   caddy: ${FRONTEND_HOSTNAME:-delovkusa.openlabio.ru}
-    #   caddy.reverse_proxy: "{{upstreams 3000}}"
-    #   caddy.encode: "zstd gzip"
 
 volumes:
   bakery_postgres_data:
@@ -206,6 +199,3 @@ volumes:
 networks:
   bakery_net:
     name: bakery_net
-  web:
-    name: ${WEB_NETWORK:-web}
-    external: true
