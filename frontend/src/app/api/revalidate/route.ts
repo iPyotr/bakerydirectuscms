@@ -1,4 +1,4 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -37,8 +37,6 @@ async function handle(request: NextRequest) {
 
   // Revalidate layout (root) → all child pages re-render on next hit.
   revalidatePath("/", "layout");
-  // Also keep the catch-all tag in case we start using `tags: [...]` in fetch.
-  revalidateTag("directus");
 
   return NextResponse.json({
     revalidated: true,

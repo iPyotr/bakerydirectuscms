@@ -36,6 +36,16 @@ export interface DirectusSchema {
     status?: "published" | "draft" | "archived";
     available?: boolean | null;
   }>;
+  hero_slides: Array<{
+    id: string;
+    sort?: number | null;
+    title: string;
+    accent?: string | null;
+    description?: string | null;
+    image?: string | null;
+    cta_label?: string | null;
+    cta_href?: string | null;
+  }>;
   globals: {
     brand_name: string;
     legal_name?: string | null;

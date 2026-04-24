@@ -20,7 +20,9 @@ import {
   createFlow,
   createOperation,
   createPermission,
+  createPolicy,
   createRelation,
+  createRole,
   deleteFlow,
   deletePermission,
   readCollections,
@@ -29,10 +31,13 @@ import {
   readItems,
   readPermissions,
   readPolicies,
+  readRoles,
   createItems,
   updateCollection,
   updateFlow,
   updatePermission,
+  updatePolicy,
+  updateRole,
   updateSingleton,
   readSingleton,
   uploadFiles,
@@ -98,11 +103,23 @@ async function ensureCollection(definition, initialFields = []) {
   );
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Cache of existing fields by collection, populated once per collection.
+const fieldCache = new Map();
+
 async function ensureField(collection, definition) {
-  const existing = await getExistingFieldsFor(collection);
+  let existing = fieldCache.get(collection);
+  if (!existing) {
+    existing = await getExistingFieldsFor(collection);
+    fieldCache.set(collection, existing);
+  }
   if (existing.has(definition.field)) return;
   await client.request(createField(collection, definition));
+  existing.add(definition.field);
   console.log(`[seed]   + field ${collection}.${definition.field}`);
+  // Respect Directus rate limit (100 req/s default; retry window ~250ms).
+  await sleep(250);
 }
 
 // --------------------- schema definitions ---------------------
@@ -509,12 +526,452 @@ async function uploadIfMissing(localPath, folderLabel, mime = "image/webp") {
   return Array.isArray(res) ? res[0]?.id : res.id;
 }
 
+// --------------------- NEW COLLECTIONS: hero_slides, promotions, locations, orders, order_items ---------------------
+
+const heroSlidesCollection = {
+  collection: "hero_slides",
+  meta: { icon: "slideshow", note: "Слайды на главной странице", collection: "hero_slides" },
+  schema: { name: "hero_slides" },
+};
+const heroSlideFields = [
+  statusField,
+  sortField,
+  {
+    field: "title",
+    type: "string",
+    meta: { interface: "input", required: true, width: "half", note: "Основной заголовок" },
+    schema: { is_nullable: false },
+  },
+  {
+    field: "accent",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "Акцент (выделяется другим цветом)" },
+    schema: {},
+  },
+  {
+    field: "description",
+    type: "text",
+    meta: { interface: "input-multiline", width: "full" },
+    schema: {},
+  },
+  {
+    field: "image",
+    type: "uuid",
+    meta: { interface: "file-image", special: ["file"], width: "half" },
+    schema: {},
+  },
+  {
+    field: "cta_label",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "Текст кнопки" },
+    schema: {},
+  },
+  {
+    field: "cta_href",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "URL кнопки (относительный: /catalog/bread)" },
+    schema: {},
+  },
+  {
+    field: "active_from",
+    type: "timestamp",
+    meta: { interface: "datetime", width: "half" },
+    schema: {},
+  },
+  {
+    field: "active_until",
+    type: "timestamp",
+    meta: { interface: "datetime", width: "half" },
+    schema: {},
+  },
+];
+
+const promotionsCollection = {
+  collection: "promotions",
+  meta: { icon: "local_offer", note: "Акции и спецпредложения", collection: "promotions" },
+  schema: { name: "promotions" },
+};
+const promotionFields = [
+  statusField,
+  sortField,
+  {
+    field: "slug",
+    type: "string",
+    meta: { interface: "input", required: true, width: "half" },
+    schema: { is_nullable: false, is_unique: true },
+  },
+  {
+    field: "title",
+    type: "string",
+    meta: { interface: "input", required: true, width: "half" },
+    schema: { is_nullable: false },
+  },
+  {
+    field: "tag",
+    type: "string",
+    meta: {
+      interface: "select-dropdown",
+      width: "half",
+      options: {
+        choices: [
+          { text: "Хит", value: "hit" },
+          { text: "Новинка", value: "new" },
+          { text: "Скидка", value: "sale" },
+        ],
+      },
+    },
+    schema: {},
+  },
+  {
+    field: "description",
+    type: "text",
+    meta: { interface: "input-rich-text-md", width: "full" },
+    schema: {},
+  },
+  {
+    field: "image",
+    type: "uuid",
+    meta: { interface: "file-image", special: ["file"], width: "half" },
+    schema: {},
+  },
+  {
+    field: "discount_percent",
+    type: "integer",
+    meta: { interface: "input", width: "half", note: "Процент скидки (опционально)" },
+    schema: {},
+  },
+  {
+    field: "active_from",
+    type: "timestamp",
+    meta: { interface: "datetime", width: "half" },
+    schema: {},
+  },
+  {
+    field: "active_until",
+    type: "timestamp",
+    meta: { interface: "datetime", width: "half" },
+    schema: {},
+  },
+];
+
+const locationsCollection = {
+  collection: "locations",
+  meta: { icon: "store", note: "Точки продаж", collection: "locations" },
+  schema: { name: "locations" },
+};
+const locationFields = [
+  statusField,
+  sortField,
+  {
+    field: "title",
+    type: "string",
+    meta: { interface: "input", required: true, width: "half" },
+    schema: { is_nullable: false },
+  },
+  {
+    field: "address",
+    type: "string",
+    meta: { interface: "input", required: true, width: "full" },
+    schema: { is_nullable: false },
+  },
+  {
+    field: "phone",
+    type: "string",
+    meta: { interface: "input", width: "half" },
+    schema: {},
+  },
+  {
+    field: "working_hours",
+    type: "string",
+    meta: { interface: "input", width: "half" },
+    schema: {},
+  },
+  {
+    field: "image",
+    type: "uuid",
+    meta: { interface: "file-image", special: ["file"], width: "half" },
+    schema: {},
+  },
+  {
+    field: "location",
+    type: "json",
+    meta: {
+      interface: "input-code",
+      width: "full",
+      options: { language: "json" },
+      note: '{"lat":46.634,"lng":142.782,"zoom":16}',
+    },
+    schema: {},
+  },
+];
+
+const orderStatusField = {
+  field: "status",
+  type: "string",
+  meta: {
+    width: "half",
+    interface: "select-dropdown",
+    display: "labels",
+    options: {
+      choices: [
+        { text: "Черновик", value: "draft" },
+        { text: "Оформлен", value: "submitted" },
+        { text: "Подтверждён", value: "confirmed" },
+        { text: "Готовится", value: "preparing" },
+        { text: "Готов к выдаче", value: "ready" },
+        { text: "Выдан", value: "collected" },
+        { text: "Отменён", value: "cancelled" },
+      ],
+    },
+    display_options: {
+      showAsDot: true,
+      choices: [
+        { text: "Черновик", value: "draft", background: "#A2B5CD" },
+        { text: "Оформлен", value: "submitted", background: "#2F80ED" },
+        { text: "Подтверждён", value: "confirmed", background: "#6D47D9" },
+        { text: "Готовится", value: "preparing", background: "#EFC253" },
+        { text: "Готов к выдаче", value: "ready", background: "#27AE60" },
+        { text: "Выдан", value: "collected", background: "#7EAD5C" },
+        { text: "Отменён", value: "cancelled", background: "#E53935" },
+      ],
+    },
+  },
+  schema: { default_value: "draft", is_nullable: false },
+};
+
+const ordersCollection = {
+  collection: "orders",
+  meta: {
+    icon: "receipt_long",
+    note: "Заказы клиентов",
+    collection: "orders",
+    sort_field: "order_number",
+    archive_field: "status",
+    archive_value: "cancelled",
+    unarchive_value: "submitted",
+  },
+  schema: { name: "orders" },
+};
+const orderFields = [
+  orderStatusField,
+  {
+    field: "order_number",
+    type: "integer",
+    meta: {
+      interface: "input",
+      width: "half",
+      readonly: true,
+      note: "Автонумерация (человекочитаемый id для клиента)",
+      special: [],
+    },
+    schema: { has_auto_increment: true, is_nullable: false, is_unique: true },
+  },
+  {
+    field: "user",
+    type: "uuid",
+    meta: {
+      interface: "select-dropdown-m2o",
+      special: ["m2o"],
+      width: "half",
+      options: { template: "{{first_name}} {{last_name}} ({{email}})" },
+      note: "Залогиненный клиент (может быть пусто для гостевых заказов)",
+    },
+    schema: {},
+  },
+  {
+    field: "contact_name",
+    type: "string",
+    meta: { interface: "input", width: "half" },
+    schema: {},
+  },
+  {
+    field: "contact_phone",
+    type: "string",
+    meta: { interface: "input", width: "half", required: true },
+    schema: { is_nullable: false },
+  },
+  {
+    field: "pickup_time",
+    type: "timestamp",
+    meta: { interface: "datetime", width: "half", note: "Желаемое время самовывоза" },
+    schema: {},
+  },
+  {
+    field: "total",
+    type: "integer",
+    meta: {
+      interface: "input",
+      width: "half",
+      readonly: true,
+      note: "Итого ₽ (пересчитывается автоматически на фронте)",
+    },
+    schema: { default_value: 0 },
+  },
+  {
+    field: "notes",
+    type: "text",
+    meta: { interface: "input-multiline", width: "full", note: "Комментарий клиента" },
+    schema: {},
+  },
+  {
+    field: "items",
+    type: "alias",
+    meta: {
+      interface: "list-o2m",
+      special: ["o2m"],
+      width: "full",
+      options: { template: "{{quantity}}× {{product_title_snapshot}}" },
+    },
+    schema: {},
+  },
+];
+
+const orderItemsCollection = {
+  collection: "order_items",
+  meta: {
+    icon: "shopping_basket",
+    hidden: true,
+    note: "Позиции заказов",
+    collection: "order_items",
+  },
+  schema: { name: "order_items" },
+};
+const orderItemFields = [
+  {
+    field: "order",
+    type: "uuid",
+    meta: { interface: "select-dropdown-m2o", special: ["m2o"], width: "half" },
+    schema: {},
+  },
+  {
+    field: "product",
+    type: "uuid",
+    meta: { interface: "select-dropdown-m2o", special: ["m2o"], width: "half" },
+    schema: {},
+  },
+  {
+    field: "product_slug_snapshot",
+    type: "string",
+    meta: { interface: "input", width: "half", readonly: true },
+    schema: {},
+  },
+  {
+    field: "product_title_snapshot",
+    type: "string",
+    meta: { interface: "input", width: "half", readonly: true },
+    schema: {},
+  },
+  {
+    field: "price_snapshot",
+    type: "integer",
+    meta: { interface: "input", width: "half", readonly: true },
+    schema: { default_value: 0 },
+  },
+  {
+    field: "quantity",
+    type: "integer",
+    meta: { interface: "input", width: "half" },
+    schema: { default_value: 1, is_nullable: false },
+  },
+];
+
+// Extra fields for directus_users (customer profile).
+const userExtraFields = [
+  {
+    field: "phone",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "Телефон (+7…)" },
+    schema: {},
+  },
+  {
+    field: "marketing_opt_in",
+    type: "boolean",
+    meta: { interface: "boolean", width: "half", note: "Согласен на маркетинговые рассылки", special: ["cast-boolean"] },
+    schema: { default_value: false },
+  },
+  {
+    field: "bonus_points",
+    type: "integer",
+    meta: { interface: "input", width: "half", note: "Бонусные баллы" },
+    schema: { default_value: 0 },
+  },
+  {
+    field: "preferred_categories",
+    type: "json",
+    meta: {
+      interface: "tags",
+      width: "full",
+      options: { presets: ["bread", "savory-pastry", "sweet-pastry", "ready-meals", "frozen", "drinks"] },
+    },
+    schema: {},
+  },
+  {
+    field: "notification_channels",
+    type: "json",
+    meta: {
+      interface: "select-multiple-checkbox",
+      width: "full",
+      options: {
+        choices: [
+          { text: "Email", value: "email" },
+          { text: "Telegram", value: "telegram" },
+          { text: "Web Push", value: "push" },
+        ],
+      },
+    },
+    schema: {},
+  },
+];
+
+// SEO fields (added to existing categories/products collections).
+const seoFields = [
+  {
+    field: "meta_title",
+    type: "string",
+    meta: { interface: "input", width: "full", group: "seo", note: "SEO title (до 60 символов)" },
+    schema: {},
+  },
+  {
+    field: "meta_description",
+    type: "text",
+    meta: { interface: "input-multiline", width: "full", group: "seo", note: "SEO description (до 160 символов)" },
+    schema: {},
+  },
+  {
+    field: "og_image",
+    type: "uuid",
+    meta: { interface: "file-image", special: ["file"], width: "full", group: "seo", note: "Картинка для шаринга (1200×630)" },
+    schema: {},
+  },
+];
+
+// --------------------- seed data ---------------------
+const heroSlidesData = [
+  { sort: 1, title: "Свежая выпечка", accent: "каждый день", description: "Готовим с душой из натуральных ингредиентов и по проверенным рецептам", cta_label: "Перейти в каталог", cta_href: "/catalog", _image: "sliders/bread.webp" },
+  { sort: 2, title: "Тёплая самса", accent: "из печи", description: "Слоёное тесто, сочная начинка — забирайте горячей через 15 минут после заказа", cta_label: "Смотреть выпечку", cta_href: "/catalog/savory-pastry", _image: "sliders/savory-pastry.webp" },
+  { sort: 3, title: "Полуфабрикаты", accent: "как дома", description: "Пельмени, вареники и манты ручной лепки — наша гордость в каждой упаковке", cta_label: "Заморозка", cta_href: "/catalog/frozen", _image: "sliders/frozen.webp" },
+  { sort: 4, title: "Сладкая сдоба", accent: "с маком", description: "Свежие булочки, ватрушки и рулеты — идеальная пара к утреннему кофе", cta_label: "Сладкая выпечка", cta_href: "/catalog/sweet-pastry", _image: "sliders/sweet-pastry.webp" },
+  { sort: 5, title: "Напитки", accent: "к любому блюду", description: "Натуральные лимонады, компоты и чай — всё, что освежит ваш день", cta_label: "К напиткам", cta_href: "/catalog/drinks", _image: "sliders/drinks.webp" },
+];
+
+const locationsData = [
+  {
+    title: "Пекарня «Дело вкуса»",
+    address: "г. Корсаков, ул. Гвардейская, 54",
+    phone: "+7 (843) 555-01-20",
+    working_hours: "Ежедневно 08:00 – 20:00",
+    location: { lat: 46.634980, lng: 142.782579, zoom: 16 },
+    sort: 1,
+    status: "published",
+  },
+];
+
 // --------------------- public permissions ---------------------
 const publicPermissions = [
   {
     collection: "categories",
     action: "read",
-    fields: ["id", "slug", "title", "subtitle", "image", "slider_image", "products_count", "sort"],
+    fields: ["id", "slug", "title", "subtitle", "image", "slider_image", "products_count", "sort", "meta_title", "meta_description", "og_image"],
     permissions: { status: { _eq: "published" } },
   },
   {
@@ -533,6 +990,9 @@ const publicPermissions = [
       "image",
       "description",
       "sort",
+      "meta_title",
+      "meta_description",
+      "og_image",
     ],
     permissions: { status: { _eq: "published" } },
   },
@@ -556,6 +1016,24 @@ const publicPermissions = [
     permissions: null,
   },
   {
+    collection: "hero_slides",
+    action: "read",
+    fields: ["id", "sort", "title", "accent", "description", "image", "cta_label", "cta_href", "active_from", "active_until"],
+    permissions: { status: { _eq: "published" } },
+  },
+  {
+    collection: "promotions",
+    action: "read",
+    fields: ["id", "slug", "title", "tag", "description", "image", "discount_percent", "active_from", "active_until", "sort"],
+    permissions: { status: { _eq: "published" } },
+  },
+  {
+    collection: "locations",
+    action: "read",
+    fields: ["id", "title", "address", "phone", "working_hours", "image", "location", "sort"],
+    permissions: { status: { _eq: "published" } },
+  },
+  {
     collection: "directus_files",
     action: "read",
     fields: [
@@ -573,6 +1051,138 @@ const publicPermissions = [
     permissions: null,
   },
 ];
+
+// --------------------- customer role + policy ---------------------
+const customerPermissions = [
+  // Read own user, update own
+  {
+    collection: "directus_users",
+    action: "read",
+    fields: ["id", "first_name", "last_name", "email", "avatar", "phone", "marketing_opt_in", "bonus_points", "preferred_categories", "notification_channels"],
+    permissions: { id: { _eq: "$CURRENT_USER" } },
+  },
+  {
+    collection: "directus_users",
+    action: "update",
+    fields: ["first_name", "last_name", "phone", "avatar", "marketing_opt_in", "preferred_categories", "notification_channels"],
+    permissions: { id: { _eq: "$CURRENT_USER" } },
+  },
+  // Orders: create new, read own
+  {
+    collection: "orders",
+    action: "create",
+    fields: ["status", "user", "contact_name", "contact_phone", "pickup_time", "total", "notes", "items"],
+    presets: { user: "$CURRENT_USER", status: "submitted" },
+    permissions: null,
+  },
+  {
+    collection: "orders",
+    action: "read",
+    fields: ["*"],
+    permissions: { user: { _eq: "$CURRENT_USER" } },
+  },
+  {
+    collection: "order_items",
+    action: "create",
+    fields: ["*"],
+    permissions: null,
+  },
+  {
+    collection: "order_items",
+    action: "read",
+    fields: ["*"],
+    permissions: { order: { user: { _eq: "$CURRENT_USER" } } },
+  },
+];
+
+async function ensureCustomerRoleAndPolicy() {
+  console.log("\n[seed] ==== CUSTOMER ROLE ====");
+
+  // 1. Role
+  const roles = await client.request(readRoles({ filter: { name: { _eq: "Customer" } }, limit: 1 }));
+  let role = roles[0];
+  if (!role) {
+    role = await client.request(
+      createRole({
+        name: "Customer",
+        icon: "shopping_basket",
+        description: "Зарегистрированный клиент (через SSO)",
+      }),
+    );
+    console.log(`[seed]   + role Customer (${role.id})`);
+  } else {
+    console.log(`[seed]   ~ role Customer exists (${role.id})`);
+  }
+
+  // 2. Policy — создаётся БЕЗ roles, иначе Directus отдаёт 403.
+  const policies = await client.request(
+    readPolicies({ filter: { name: { _eq: "Customer" } }, limit: 1, fields: ["id", "name"] }),
+  );
+  let policy = policies[0];
+  if (!policy) {
+    policy = await client.request(
+      createPolicy({
+        name: "Customer",
+        icon: "shopping_basket",
+        description: "Права клиента: читать свой профиль, создавать/читать свои заказы",
+        admin_access: false,
+        app_access: false,
+      }),
+    );
+    console.log(`[seed]   + policy Customer (${policy.id})`);
+  } else {
+    console.log(`[seed]   ~ policy Customer exists (${policy.id})`);
+  }
+
+  // Link policy to role via the junction (role.policies is M2M access).
+  try {
+    const current = await client.request(
+      readRoles({
+        filter: { id: { _eq: role.id } },
+        fields: ["id", { policies: ["policy"] }],
+        limit: 1,
+      }),
+    );
+    const linked = (current[0]?.policies ?? []).some(
+      (p) => (typeof p === "object" ? p.policy : p) === policy.id,
+    );
+    if (!linked) {
+      await client.request(
+        updateRole(role.id, {
+          policies: { create: [{ policy: { id: policy.id } }] },
+        }),
+      );
+      console.log("[seed]   + linked policy → role");
+    }
+  } catch (e) {
+    console.warn("[seed]   ! could not link policy to role:", e?.errors?.[0]?.message ?? e);
+  }
+
+  // 3. Permissions
+  const existing = await client.request(
+    readPermissions({
+      filter: { policy: { _eq: policy.id } },
+      limit: -1,
+      fields: ["id", "collection", "action"],
+    }),
+  );
+  const byKey = new Map(existing.map((p) => [`${p.collection}:${p.action}`, p]));
+  for (const p of customerPermissions) {
+    const key = `${p.collection}:${p.action}`;
+    const payload = { ...p, policy: policy.id };
+    const found = byKey.get(key);
+    if (found) {
+      await client.request(updatePermission(found.id, payload));
+      console.log(`[seed]     ~ customer.${key}`);
+    } else {
+      await client.request(createPermission(payload));
+      console.log(`[seed]     + customer.${key}`);
+    }
+  }
+
+  console.log(`\n[seed]   ℹ Customer role UUID for AUTH_*_DEFAULT_ROLE_ID env:\n    ${role.id}`);
+  return role.id;
+}
 
 async function ensurePublicPermissions() {
   console.log("\n[seed] ==== PUBLIC PERMISSIONS ====");
@@ -681,6 +1291,25 @@ async function main() {
   // no uuid needed.
   await ensureCollection(globalsCollection, globalsFields);
 
+  // Additional collections
+  await ensureCollection(heroSlidesCollection, [idField, ...heroSlideFields]);
+  await ensureCollection(promotionsCollection, [idField, ...promotionFields]);
+  await ensureCollection(locationsCollection, [idField, ...locationFields]);
+  await ensureCollection(ordersCollection, [idField, ...orderFields]);
+  await ensureCollection(orderItemsCollection, [idField, ...orderItemFields]);
+
+  // SEO fields on existing categories / products
+  console.log("[seed]   SEO fields on categories/products");
+  for (const f of seoFields) {
+    await ensureField("categories", f);
+    await ensureField("products", f);
+  }
+  // Customer profile fields on directus_users
+  console.log("[seed]   Extra fields on directus_users");
+  for (const f of userExtraFields) {
+    await ensureField("directus_users", f);
+  }
+
   // Wire sort/archive meta AFTER the fields exist so Directus doesn't try
   // to auto-create stub columns at collection-create time.
   for (const col of ["categories", "products"]) {
@@ -701,18 +1330,25 @@ async function main() {
     }
   }
 
-  // Relation products.category -> categories.id
-  try {
-    await client.request(
-      createRelation({
-        collection: "products",
-        field: "category",
-        related_collection: "categories",
-      }),
-    );
-    console.log("[seed] ✓ relation products.category → categories");
-  } catch (e) {
-    console.log("[seed] relation products.category exists, skipping");
+  // Relations
+  const relations = [
+    { collection: "products", field: "category", related_collection: "categories" },
+    { collection: "orders", field: "user", related_collection: "directus_users" },
+    {
+      collection: "order_items",
+      field: "order",
+      related_collection: "orders",
+      meta: { one_field: "items" },
+    },
+    { collection: "order_items", field: "product", related_collection: "products" },
+  ];
+  for (const r of relations) {
+    try {
+      await client.request(createRelation(r));
+      console.log(`[seed] ✓ relation ${r.collection}.${r.field} → ${r.related_collection}`);
+    } catch {
+      console.log(`[seed] relation ${r.collection}.${r.field} exists, skipping`);
+    }
   }
 
   // 2) Upload images
@@ -815,7 +1451,43 @@ async function main() {
     console.log("[seed] ✓ globals populated");
   }
 
-  // 6) Public permissions + revalidate flow
+  // Hero slides
+  console.log("\n[seed] ==== HERO SLIDES ====");
+  const existingSlides = await client.request(
+    readItems("hero_slides", { fields: ["title"], limit: -1 }),
+  );
+  if (existingSlides.length) {
+    console.log(`[seed] hero_slides already has ${existingSlides.length}, skipping`);
+  } else {
+    const newSlides = [];
+    for (const s of heroSlidesData) {
+      const img = resolve(root, "public", s._image);
+      const imageId = existsSync(img)
+        ? await uploadIfMissing(img, "hero-slides")
+        : null;
+      const { _image, ...rest } = s;
+      newSlides.push({ ...rest, image: imageId, status: "published" });
+    }
+    const created = await client.request(createItems("hero_slides", newSlides));
+    console.log(`[seed] ✓ inserted ${created.length} hero slides`);
+  }
+
+  // Locations
+  console.log("\n[seed] ==== LOCATIONS ====");
+  const existingLocations = await client.request(
+    readItems("locations", { fields: ["id"], limit: 1 }),
+  );
+  if (existingLocations.length) {
+    console.log("[seed] locations already populated, skipping");
+  } else {
+    await client.request(createItems("locations", locationsData));
+    console.log(`[seed] ✓ inserted ${locationsData.length} location(s)`);
+  }
+
+  // Customer role + policy + permissions
+  await ensureCustomerRoleAndPolicy();
+
+  // Public permissions + revalidate flow
   await ensurePublicPermissions();
   await ensureRevalidateFlow();
 

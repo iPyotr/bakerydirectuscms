@@ -1,17 +1,25 @@
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { fetchGlobals } from "@/lib/api";
 
-export const alt = "Дело вкуса — пекарня, кулинария и полуфабрикаты в Казани";
+export const alt = "Дело вкуса — пекарня, кулинария и полуфабрикаты";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+// Re-generate when Directus webhook fires revalidatePath("/", "layout").
+export const revalidate = 300;
 
 export default async function Image() {
-  const logoSvg = await readFile(
-    join(process.cwd(), "public/ico/brand-mark.svg"),
-    "utf-8",
-  );
+  const [logoSvg, globals] = await Promise.all([
+    readFile(join(process.cwd(), "public/ico/brand-mark.svg"), "utf-8"),
+    fetchGlobals(),
+  ]);
   const logoDataUri = `data:image/svg+xml;base64,${Buffer.from(logoSvg).toString("base64")}`;
+
+  const addressLine = `${globals.addressShort} · ${globals.workingHours}`;
+  const siteHost = (process.env.SITE_URL ?? "https://delovkusa.openlabio.ru")
+    .replace(/^https?:\/\//, "")
+    .replace(/\/$/, "");
 
   return new ImageResponse(
     (
@@ -141,11 +149,9 @@ export default async function Image() {
             >
               🥐
             </div>
-            <span>Казань, Гвардейская 54 · ежедневно 08:00–20:00</span>
+            <span>{addressLine}</span>
           </div>
-          <span style={{ color: "#d62929", fontWeight: 800 }}>
-            delovkusa.openlabio.ru
-          </span>
+          <span style={{ color: "#d62929", fontWeight: 800 }}>{siteHost}</span>
         </div>
       </div>
     ),

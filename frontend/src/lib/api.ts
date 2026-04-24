@@ -164,5 +164,43 @@ export async function fetchGlobals(): Promise<Globals> {
 }
 
 export async function fetchHeroSlides(): Promise<HeroSlide[]> {
-  return mockHeroSlides;
+  if (!USE_DIRECTUS) return mockHeroSlides;
+  try {
+    const rows = (await directus.request(
+      readItems("hero_slides", {
+        sort: ["sort"],
+        fields: ["*"] as never,
+        filter: { status: { _eq: "published" } } as never,
+        limit: 10,
+      }),
+    )) as Array<{
+      id: string;
+      sort?: number | null;
+      title: string;
+      accent?: string | null;
+      description?: string | null;
+      image?: string | null;
+      cta_label?: string | null;
+      cta_href?: string | null;
+    }>;
+
+    if (!rows.length) return mockHeroSlides;
+
+    return rows.map((r, idx): HeroSlide => ({
+      id: r.id,
+      title: r.title,
+      accent: r.accent ?? "",
+      description: r.description ?? "",
+      image:
+        directusFile(r.image, { width: 1920, format: "webp" }) ??
+        mockHeroSlides[idx % mockHeroSlides.length].image,
+      cta: {
+        label: r.cta_label ?? "В каталог",
+        href: r.cta_href ?? "/catalog",
+      },
+    }));
+  } catch (error) {
+    handleDirectusError(error, "fetchHeroSlides");
+    return mockHeroSlides;
+  }
 }
