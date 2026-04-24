@@ -1,0 +1,211 @@
+name: bakery
+
+services:
+  # ---------------- PostgreSQL (опциональный — только при COMPOSE_PROFILES=internal-db) ----------------
+  bakery_postgres:
+    image: postgres:${POSTGRES_VERSION:-17-alpine}
+    container_name: bakery_postgres
+    restart: unless-stopped
+    shm_size: 256mb
+    profiles:
+      - internal-db
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - bakery_postgres_data:/var/lib/postgresql/data
+    networks:
+      - bakery_net
+    # Внешний порт закомментирован — БД доступна только внутри docker-сети.
+    # Раскомментируйте для диагностики через psql с хоста.
+    # ports:
+    #   - "${POSTGRES_HOST_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ---------------- Directus (CMS) ----------------
+  bakery_directus:
+    image: directus/directus:${DIRECTUS_VERSION:-11}
+    container_name: bakery_directus
+    restart: unless-stopped
+    init: true
+    depends_on:
+      # required: false → если профиль `internal-db` не активен (используется внешний PG),
+      # depends_on игнорируется и Directus стартует сразу.
+      bakery_postgres:
+        condition: service_healthy
+        required: false
+    environment:
+      # Core
+      KEY: ${DIRECTUS_KEY}
+      SECRET: ${DIRECTUS_SECRET}
+      PUBLIC_URL: ${DIRECTUS_PUBLIC_URL}
+
+      # Admin bootstrap — применяется только при первом запуске пустой БД.
+      # После этого управляйте пользователем через админку.
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      # Опциональный API-токен первого админа (для server-to-server скриптов).
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+
+      # Database — управляется через ENV. По умолчанию — сервис внутри стека (bakery_postgres).
+      # Для внешнего PG: DATABASE_HOST=<ip/хост>, DATABASE_PORT=5432, COMPOSE_PROFILES= (пусто).
+      DB_CLIENT: pg
+      DB_HOST: ${DATABASE_HOST:-bakery_postgres}
+      DB_PORT: ${DATABASE_PORT:-5432}
+      DB_DATABASE: ${DATABASE_NAME}
+      DB_USER: ${DATABASE_USERNAME}
+      DB_PASSWORD: ${DATABASE_PASSWORD}
+      DB_SSL: ${DATABASE_SSL:-false}
+      DB_POOL__MIN: ${DB_POOL_MIN:-5}
+      DB_POOL__MAX: ${DB_POOL_MAX:-50}
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-30000}
+
+      # Cache — in-memory (single instance)
+      CACHE_ENABLED: ${CACHE_ENABLED:-true}
+      CACHE_STORE: memory
+      CACHE_AUTO_PURGE: "true"
+
+      # Storage — local disk (mounted volume bakery_directus_uploads)
+      STORAGE_LOCATIONS: local
+      STORAGE_LOCAL_DRIVER: local
+      STORAGE_LOCAL_ROOT: /directus/uploads
+
+      # CORS
+      CORS_ENABLED: ${CORS_ENABLED:-true}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      CORS_METHODS: ${CORS_METHODS:-GET,POST,PATCH,DELETE,PUT}
+      CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS:-Content-Type,Authorization,X-Project-Key}
+
+      # Rate limit — memory-backed
+      RATE_LIMITER_ENABLED: ${RATE_LIMITER_ENABLED:-true}
+      RATE_LIMITER_POINTS: ${RATE_LIMITER_POINTS:-100}
+      RATE_LIMITER_DURATION: ${RATE_LIMITER_DURATION:-1}
+      RATE_LIMITER_STORE: memory
+
+      # SMTP
+      EMAIL_TRANSPORT: smtp
+      EMAIL_SMTP_HOST: ${SMTP_HOST}
+      EMAIL_SMTP_PORT: ${SMTP_PORT}
+      EMAIL_SMTP_USER: ${SMTP_USER}
+      EMAIL_SMTP_PASSWORD: ${SMTP_PASSWORD}
+      EMAIL_SMTP_SECURE: "true"
+      EMAIL_FROM: ${SMTP_FROM_EMAIL}
+      EMAIL_FROM_NAME: ${SMTP_FROM_NAME}
+
+      # Auth cookies (prod cross-subdomain)
+      REFRESH_TOKEN_COOKIE_SECURE: "true"
+      REFRESH_TOKEN_COOKIE_SAME_SITE: "Lax"
+      REFRESH_TOKEN_COOKIE_DOMAIN: ${REFRESH_TOKEN_COOKIE_DOMAIN}
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_COOKIE_SAME_SITE: "Lax"
+      SESSION_COOKIE_DOMAIN: ${SESSION_COOKIE_DOMAIN}
+
+      # GraphQL / assets
+      GRAPHQL_INTROSPECTION: ${GRAPHQL_INTROSPECTION:-true}
+      QUERY_LIMIT_MAX: ${QUERY_LIMIT_MAX:-1000}
+      GRAPHQL_QUERY_COMPLEXITY_LIMIT: ${GRAPHQL_QUERY_COMPLEXITY_LIMIT:-10000}
+      ASSETS_CACHE_TTL: ${ASSETS_CACHE_TTL:-31536000}
+      ASSETS_TRANSFORM_MAX_CONCURRENT: ${ASSETS_TRANSFORM_MAX_CONCURRENT:-4}
+      ASSETS_TRANSFORM_IMAGE_MAX_DIMENSION: ${ASSETS_TRANSFORM_IMAGE_MAX_DIMENSION:-2048}
+
+      # Misc
+      PUBLIC_REGISTER: ${PUBLIC_REGISTER:-false}
+      TELEMETRY: ${TELEMETRY:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_STYLE: ${LOG_STYLE:-pretty}
+    volumes:
+      - bakery_directus_uploads:/directus/uploads
+      - bakery_directus_extensions:/directus/extensions
+    networks:
+      - bakery_net
+      - web
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q --spider http://127.0.0.1:8055/server/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    # Uncomment labels for caddy-docker-proxy on the `web` network.
+    # labels:
+    #   caddy: ${DIRECTUS_HOSTNAME:-admin.delovkusa.openlabio.ru}
+    #   caddy.reverse_proxy: "{{upstreams 8055}}"
+    #   caddy.encode: "zstd gzip"
+
+  # ---------------- Frontend (Next.js) ----------------
+  bakery_frontend:
+    image: ${FRONTEND_IMAGE:-ghcr.io/ipyotr/bakerydirectuscms-frontend}:${FRONTEND_IMAGE_TAG:-latest}
+    container_name: bakery_frontend
+    restart: unless-stopped
+    init: true
+    depends_on:
+      bakery_directus:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Internal URL — server-to-server fetch inside Docker network
+      DIRECTUS_URL: http://bakery_directus:8055
+      # Public URL — browser (asset links, SSO redirect)
+      DIRECTUS_PUBLIC_URL: ${DIRECTUS_PUBLIC_URL}
+      USE_DIRECTUS: ${USE_DIRECTUS:-true}
+    ports:
+      - "${FRONTEND_HOST_PORT:-3000}:3000"
+    networks:
+      - bakery_net
+      - web
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r => { if (r.status >= 500) process.exit(1); }).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    # Uncomment labels for caddy-docker-proxy on the `web` network.
+    # labels:
+    #   caddy: ${FRONTEND_HOSTNAME:-delovkusa.openlabio.ru}
+    #   caddy.reverse_proxy: "{{upstreams 3000}}"
+    #   caddy.encode: "zstd gzip"
+
+volumes:
+  bakery_postgres_data:
+    name: bakery_postgres_data
+  bakery_directus_uploads:
+    name: bakery_directus_uploads
+  bakery_directus_extensions:
+    name: bakery_directus_extensions
+
+networks:
+  bakery_net:
+    name: bakery_net
+  web:
+    name: ${WEB_NETWORK:-web}
+    external: true

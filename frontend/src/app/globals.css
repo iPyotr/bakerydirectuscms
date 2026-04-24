@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+@theme {
+  --color-stage: #eae6e1;
+  --color-panel: #f7f4f1;
+  --color-card: #f2eeea;
+  --color-ink: #23201d;
+  --color-ink-soft: #2e2b28;
+  --color-muted: #8b847c;
+  --color-muted-soft: #6b645c;
+  --color-hairline: rgba(0, 0, 0, 0.07);
+
+  --color-brand: #d62929;
+  --color-brand-dark: #b01f1f;
+
+  --color-gold: #efc253;
+  --color-gold-dark: #d4a93d;
+  --color-gold-ink: #533900;
+
+  --color-danger: #ef4646;
+  --color-danger-strong: #ea3434;
+  --color-success: #91c74d;
+
+  --color-yandex: #fc3f1d;
+  --color-vk: #0077ff;
+  --color-mailru: #005ff9;
+
+  --radius-xs: 12px;
+  --radius-sm: 14px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-xl: 28px;
+  --radius-2xl: 34px;
+
+  --shadow-card: 0 10px 20px rgba(70, 45, 20, 0.05);
+  --shadow-float: 0 18px 40px rgba(75, 50, 20, 0.08);
+  --shadow-gold: 0 10px 18px rgba(239, 194, 83, 0.28);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: var(--font-manrope), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-script: "Caveat", var(--font-caveat), "Trebuchet MS", cursive;
+
+  --breakpoint-xs: 23.5rem; /* 376px */
+}
+
+html,
+body {
+  background: var(--color-stage);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--color-gold);
+  color: var(--color-gold-ink);
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.hero-bokeh {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.42) 35%, rgba(0, 0, 0, 0.12) 55%, rgba(0, 0, 0, 0.1) 100%),
+    radial-gradient(circle at 68% 45%, rgba(255, 192, 120, 0.44) 0, rgba(125, 73, 21, 0.25) 20%, transparent 34%),
+    linear-gradient(120deg, #22170f 0%, #4d311d 45%, #1d140f 100%);
+}
+.hero-bokeh::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 66% 54%, rgba(255, 233, 205, 0.95) 0 4%, transparent 4.4%),
+    radial-gradient(circle at 78% 47%, rgba(225, 176, 112, 0.95) 0 4.2%, transparent 4.6%),
+    radial-gradient(circle at 60% 54%, rgba(210, 143, 82, 0.95) 0 7.5%, transparent 8%),
+    radial-gradient(circle at 74% 52%, rgba(142, 90, 42, 0.95) 0 7.7%, transparent 8.2%),
+    radial-gradient(circle at 88% 45%, rgba(159, 97, 43, 0.95) 0 7.8%, transparent 8.3%),
+    radial-gradient(circle at 58% 58%, #be6f29 0 13%, #8f4f1f 13.5%, #6a3914 18%, transparent 18.5%),
+    radial-gradient(circle at 76% 53%, #b56b2e 0 11%, #7a431b 11.5%, #573013 15.5%, transparent 16%),
+    radial-gradient(circle at 90% 45%, #ba702d 0 12%, #7a431b 12.5%, #5b3212 16.5%, transparent 17%),
+    radial-gradient(ellipse at 74% 76%, rgba(255, 255, 255, 0.16), transparent 38%);
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+.hero-bokeh-mobile {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.76) 0%, rgba(0, 0, 0, 0.28) 55%, rgba(0, 0, 0, 0.06) 100%),
+    radial-gradient(circle at 76% 52%, rgba(255, 194, 123, 0.42) 0, rgba(140, 81, 30, 0.2) 22%, transparent 36%),
+    linear-gradient(130deg, #24170f, #5a381f 52%, #281810);
+}
+.hero-bokeh-mobile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 84% 58%, #bd712e 0 18%, #80461b 18.5% 26%, #603313 26.5% 33%, transparent 33.5%),
+    radial-gradient(circle at 64% 66%, #c5762f 0 26%, #8d4f1f 26.5% 36%, #613413 36.5% 45%, transparent 45.5%),
+    radial-gradient(ellipse at 70% 77%, rgba(255, 255, 255, 0.14), transparent 35%);
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #ece8e3 0%, #f4f0eb 40%, #ece8e3 80%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}

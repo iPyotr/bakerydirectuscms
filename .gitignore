@@ -1,0 +1,38 @@
+# Environment — защита от коммита секретов
+.env
+.env.*
+!.env.example
+!.env.local.example
+deploy/.env
+.env.docker
+
+# Контекстные материалы для агента (макеты, референсы)
+0 prompt/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# Build & dependency dirs handled per-app but listed here as safety net
+node_modules/
+.next/
+.turbo/
+dist/
+coverage/
+out/
+
+# Logs
+*.log
+
+# Working dir for artifacts
+dev_files/
+
+# Secrets
+*.pem
+*.key
