@@ -46,6 +46,16 @@ export interface DirectusSchema {
     cta_label?: string | null;
     cta_href?: string | null;
   }>;
+  locations: Array<{
+    id: string;
+    sort?: number | null;
+    title: string;
+    address: string;
+    phone?: string | null;
+    working_hours?: string | null;
+    image?: string | null;
+    location?: { lat?: number | null; lng?: number | null; zoom?: number | null } | null;
+  }>;
   globals: {
     brand_name: string;
     legal_name?: string | null;

@@ -63,6 +63,16 @@ export interface Globals {
   };
 }
 
+export interface Location {
+  id: string;
+  title: string;
+  address: string;
+  phone?: string;
+  workingHours?: string;
+  image?: string;
+  location?: GeoLocation;
+}
+
 export interface HeroSlide {
   id: string;
   title: string;

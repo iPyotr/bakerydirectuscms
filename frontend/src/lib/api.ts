@@ -1,6 +1,6 @@
 import "server-only";
 import { readItems, readSingleton } from "@directus/sdk";
-import type { Category, Globals, HeroSlide, Product } from "@/types";
+import type { Category, Globals, HeroSlide, Location, Product } from "@/types";
 import { mockCategories, mockGlobals, mockHeroSlides, mockPopularSlugs, mockProducts } from "./mocks";
 import { directus, directusFile } from "./directus";
 
@@ -164,6 +164,42 @@ export async function fetchGlobals(): Promise<Globals> {
   } catch (error) {
     handleDirectusError(error, "fetchGlobals");
     return mockGlobals;
+  }
+}
+
+export async function fetchLocations(): Promise<Location[]> {
+  if (!USE_DIRECTUS) return [];
+  try {
+    const rows = (await directus.request(
+      readItems("locations", {
+        sort: ["sort"],
+        fields: ["*"] as never,
+        limit: 50,
+      }),
+    )) as Array<{
+      id: string;
+      title: string;
+      address: string;
+      phone?: string | null;
+      working_hours?: string | null;
+      image?: string | null;
+      location?: { lat?: number | null; lng?: number | null; zoom?: number | null } | null;
+    }>;
+    return rows.map((r): Location => ({
+      id: r.id,
+      title: r.title,
+      address: r.address,
+      phone: r.phone ?? undefined,
+      workingHours: r.working_hours ?? undefined,
+      image: directusFile(r.image) ?? undefined,
+      location:
+        r.location?.lat != null && r.location?.lng != null
+          ? { lat: r.location.lat, lng: r.location.lng, zoom: r.location.zoom ?? 16 }
+          : undefined,
+    }));
+  } catch (error) {
+    handleDirectusError(error, "fetchLocations");
+    return [];
   }
 }
 
