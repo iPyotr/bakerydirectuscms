@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCart } from "@/stores/cart";
 import { Badge } from "@/components/ui/badge";
 import { PlusIcon, MinusIcon } from "@/components/ui/icon";
-import { formatPrice } from "@/lib/format";
+import { assetUrl, formatPrice } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { Product } from "@/types";
 
@@ -37,7 +37,7 @@ export function ProductCard({ product, className, compact = false }: ProductCard
         )}
       >
         <Image
-          src={product.image}
+          src={assetUrl(product.image, { width: 480, format: "webp" })}
           alt={product.title}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1200px) 33vw, 20vw"

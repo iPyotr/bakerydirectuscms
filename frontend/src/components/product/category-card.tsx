@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
-import { productsCount } from "@/lib/format";
+import { assetUrl, productsCount } from "@/lib/format";
 import type { Category } from "@/types";
 
 interface CategoryCardProps {
@@ -22,7 +22,7 @@ export function CategoryCard({ category, className, variant = "horizontal" }: Ca
       >
         {category.sliderImage ? (
           <Image
-            src={category.sliderImage}
+            src={assetUrl(category.sliderImage, { width: 640, format: "webp" })}
             alt={category.title}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
@@ -30,7 +30,7 @@ export function CategoryCard({ category, className, variant = "horizontal" }: Ca
           />
         ) : (
           <Image
-            src={category.image}
+            src={assetUrl(category.image, { width: 640, format: "webp" })}
             alt={category.title}
             fill
             className="object-cover"
@@ -58,7 +58,7 @@ export function CategoryCard({ category, className, variant = "horizontal" }: Ca
       >
         <div className="relative w-16 h-16">
           <Image
-            src={category.image}
+            src={assetUrl(category.image, { width: 200, format: "webp" })}
             alt={category.title}
             fill
             sizes="80px"
@@ -84,7 +84,7 @@ export function CategoryCard({ category, className, variant = "horizontal" }: Ca
     >
       <div className="relative w-[72px] h-[72px] shrink-0">
         <Image
-          src={category.image}
+          src={assetUrl(category.image, { width: 200, format: "webp" })}
           alt={category.title}
           fill
           sizes="80px"

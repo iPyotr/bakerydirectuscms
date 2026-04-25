@@ -6,7 +6,7 @@ import { ProductCard } from "@/components/product/product-card";
 import { AddToCart } from "./add-to-cart";
 import { Badge } from "@/components/ui/badge";
 import { fetchCategories, fetchProduct, fetchProducts } from "@/lib/api";
-import { formatPrice } from "@/lib/format";
+import { assetUrl, formatPrice } from "@/lib/format";
 
 export const revalidate = 300;
 
@@ -49,7 +49,7 @@ export default async function ProductPage(props: PageProps<"/product/[slug]">) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
         <div className="relative aspect-square rounded-[24px] overflow-hidden bg-card">
           <Image
-            src={product.image}
+            src={assetUrl(product.image, { width: 1200, format: "webp" })}
             alt={product.title}
             fill
             sizes="(max-width: 768px) 100vw, 50vw"

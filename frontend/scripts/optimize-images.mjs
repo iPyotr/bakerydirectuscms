@@ -15,17 +15,19 @@ const backupDir = join(root, ".image-backup");
 
 const targets = [
   {
+    // Master size for products — Directus will downscale on the fly via
+    // ?width=… so 1200 covers PDP (?width=1200) and card lists (?width=400).
     dir: "products",
-    width: 800,
-    height: 800,
+    width: 1200,
+    height: 1200,
     fit: "cover",
     position: "center",
     quality: 82,
   },
   {
     dir: "categories",
-    width: 400,
-    height: 400,
+    width: 600,
+    height: 600,
     fit: "cover",
     position: "center",
     quality: 85,
@@ -59,7 +61,12 @@ async function run() {
     }
     await mkdir(bkpDir, { recursive: true });
 
-    const files = (await readdir(srcDir)).filter((f) =>
+    // If sources already moved to backup (e.g. re-running with new sizes),
+    // process directly from backup.
+    const useBackup =
+      (await readdir(srcDir)).filter((f) => /\.(png|jpe?g)$/i.test(f)).length === 0 &&
+      existsSync(bkpDir);
+    const files = (await readdir(useBackup ? bkpDir : srcDir)).filter((f) =>
       /\.(png|jpe?g)$/i.test(f),
     );
 
@@ -71,11 +78,13 @@ async function run() {
       const dst = join(srcDir, `${name}.webp`);
 
       // Move original to backup (or keep if already moved earlier).
-      if (existsSync(bkp)) {
-        await rm(src);
-      } else {
+      if (!existsSync(bkp)) {
         await rename(src, bkp);
+      } else if (existsSync(src) && !useBackup) {
+        await rm(src);
       }
+      // Also remove pre-existing webp output (about to be regenerated).
+      if (existsSync(dst)) await rm(dst);
 
       const before = (await stat(bkp)).size;
       await sharp(bkp)

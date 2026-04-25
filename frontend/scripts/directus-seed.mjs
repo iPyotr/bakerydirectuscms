@@ -465,7 +465,7 @@ const productsData = [
   { slug: "frozen-pies", title: "Замороженные пирожки", category: "frozen", image: "frozen-pies", price: 220, weight: "400 г", available: true, description: "Полуфабрикаты для выпечки дома: картофель, капуста, мясо." },
   { slug: "frozen-buns", title: "Замороженные булочки", category: "frozen", image: "frozen-buns", price: 180, weight: "360 г", available: true, description: "Сдоба в заморозке: дома осталось только разогреть." },
   { slug: "dough-balls", title: "Заготовки теста", category: "frozen", image: "dough-balls", price: 140, weight: "500 г", available: true, description: "Шарики дрожжевого теста на любой выпечки." },
-  { slug: "drinks-set", title: "Лимонад «Тархун»", category: "drinks", image: "drinks", price: 120, weight: "0.5 л", available: true, description: "Натуральный лимонад без красителей." },
+  { slug: "drinks-set", title: "Лимонад «Тархун»", category: "drinks", image: "drinks-set", price: 120, weight: "0.5 л", available: true, description: "Натуральный лимонад без красителей." },
 ];
 
 const globalsData = {

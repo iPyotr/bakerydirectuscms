@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ArrowRightIcon } from "@/components/ui/icon";
+import { assetUrl } from "@/lib/format";
 import type { HeroSlide } from "@/types";
 
 export function Hero({ slides }: { slides: HeroSlide[] }) {
@@ -28,7 +29,7 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
           )}
         >
           <Image
-            src={slide.image}
+            src={assetUrl(slide.image, { width: 1920, format: "webp" })}
             alt=""
             fill
             priority={i === 0}

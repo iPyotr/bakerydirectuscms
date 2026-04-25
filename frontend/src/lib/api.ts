@@ -36,8 +36,9 @@ function transformCategory(row: {
     slug: row.slug as Category["slug"],
     title: row.title,
     subtitle: row.subtitle ?? undefined,
-    image: directusFile(row.image, { width: 512 }) ?? `/categories/${row.slug}.png`,
-    sliderImage: directusFile(row.slider_image, { width: 960 }) ?? undefined,
+    // Raw asset URL — components add their own ?width= via assetUrl().
+    image: directusFile(row.image) ?? `/categories/${row.slug}.webp`,
+    sliderImage: directusFile(row.slider_image) ?? undefined,
     productsCount: row.products_count ?? 0,
   };
 }
@@ -60,7 +61,7 @@ function transformProduct(row: {
     slug: row.slug,
     title: row.title,
     categorySlug: (row.category?.slug ?? "bread") as Product["categorySlug"],
-    image: directusFile(row.image, { width: 640 }) ?? `/products/${row.slug}.png`,
+    image: directusFile(row.image) ?? `/products/${row.slug}.webp`,
     price: row.price,
     oldPrice: row.old_price ?? undefined,
     weight: row.weight,
@@ -106,11 +107,14 @@ export async function fetchProducts(options?: {
 }): Promise<Product[]> {
   if (!USE_DIRECTUS) return filterMockProducts(options);
   try {
+    // No `status: published` filter — Public role permission already restricts
+    // it server-side, and the Public role cannot READ the `status` field
+    // (intentional — see scoped permissions), so referencing it in filter
+    // would 403.
     const rows = (await directus.request(
       readItems("products", {
         fields: ["*", { category: ["slug"] }] as never,
         filter: {
-          status: { _eq: "published" },
           ...(options?.category ? { category: { slug: { _eq: options.category } } } : {}),
           ...(options?.slugs?.length ? { slug: { _in: options.slugs } } : {}),
         } as never,
@@ -170,7 +174,7 @@ export async function fetchHeroSlides(): Promise<HeroSlide[]> {
       readItems("hero_slides", {
         sort: ["sort"],
         fields: ["*"] as never,
-        filter: { status: { _eq: "published" } } as never,
+        // No filter — Public permission already restricts to status=published.
         limit: 10,
       }),
     )) as Array<{
@@ -192,8 +196,7 @@ export async function fetchHeroSlides(): Promise<HeroSlide[]> {
       accent: r.accent ?? "",
       description: r.description ?? "",
       image:
-        directusFile(r.image, { width: 1920, format: "webp" }) ??
-        mockHeroSlides[idx % mockHeroSlides.length].image,
+        directusFile(r.image) ?? mockHeroSlides[idx % mockHeroSlides.length].image,
       cta: {
         label: r.cta_label ?? "В каталог",
         href: r.cta_href ?? "/catalog",

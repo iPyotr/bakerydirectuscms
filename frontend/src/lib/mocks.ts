@@ -332,7 +332,7 @@ export const mockProducts: Product[] = [
     slug: "drinks-set",
     title: "Лимонад «Тархун»",
     categorySlug: "drinks",
-    image: "/products/drinks.webp",
+    image: "/products/drinks-set.webp",
     price: 120,
     weight: "0.5 л",
     available: true,
