@@ -16,7 +16,8 @@ export default async function Image() {
   ]);
   const logoDataUri = `data:image/svg+xml;base64,${Buffer.from(logoSvg).toString("base64")}`;
 
-  const addressLine = `${globals.addressShort} · ${globals.workingHours}`;
+  const address = globals.addressShort || globals.address;
+  const hours = globals.workingHours;
   const siteHost = (process.env.SITE_URL ?? "https://delovkusa.openlabio.ru")
     .replace(/^https?:\/\//, "")
     .replace(/\/$/, "");
@@ -124,34 +125,56 @@ export default async function Image() {
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: "flex-end",
             paddingTop: 28,
-            borderTop: "2px solid rgba(35,32,29,0.12)",
-            color: "#6b645c",
-            fontSize: 26,
-            fontWeight: 600,
+            borderTop: "2px solid rgba(35,32,29,0.14)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
             <div
               style={{
-                width: 52,
-                height: 52,
+                width: 72,
+                height: 72,
                 borderRadius: 9999,
                 background: "#efc253",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#533900",
-                fontSize: 34,
+                fontSize: 44,
                 fontWeight: 800,
+                boxShadow: "0 6px 14px rgba(239,194,83,0.45)",
+                flexShrink: 0,
               }}
             >
               🥐
             </div>
-            <span>{addressLine}</span>
+            <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+              <span
+                style={{
+                  fontSize: 38,
+                  fontWeight: 800,
+                  color: "#23201d",
+                  letterSpacing: "-0.5px",
+                }}
+              >
+                {address}
+              </span>
+              <span style={{ fontSize: 22, fontWeight: 500, color: "#6b645c", marginTop: 6 }}>
+                {hours}
+              </span>
+            </div>
           </div>
-          <span style={{ color: "#d62929", fontWeight: 800 }}>{siteHost}</span>
+          <span
+            style={{
+              fontSize: 24,
+              fontWeight: 800,
+              color: "#d62929",
+              letterSpacing: "0.3px",
+            }}
+          >
+            {siteHost}
+          </span>
         </div>
       </div>
     ),

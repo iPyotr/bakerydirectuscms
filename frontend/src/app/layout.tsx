@@ -32,10 +32,12 @@ const siteName = "Дело вкуса";
 const siteDescription =
   "Ремесленная пекарня и собственное производство в Казани: хлеб, сытная и сладкая выпечка, курица гриль, шаурма и полуфабрикаты ручной лепки. Свежая выпечка каждый день, удобный самовывоз.";
 
+// Static metadata (used as defaults). Pages with own metadata via fetchGlobals
+// can override these dynamically.
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: `${siteName} — пекарня, кулинария и полуфабрикаты в Казани`,
+    default: `${siteName} — свежая выпечка каждый день`,
     template: `%s · ${siteName}`,
   },
   description: siteDescription,
@@ -101,18 +103,28 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const [categories, globals] = await Promise.all([fetchCategories(), fetchGlobals()]);
 
+  // Try to split "г. Корсаков, ул. Гвардейская, 54" into locality + street.
+  const parsedAddress = (() => {
+    const m = globals.address.match(
+      /^(?:г\.?\s*|город\s+)?([^,]+?),\s*(.+)$/i,
+    );
+    return m
+      ? { locality: m[1].trim(), street: m[2].trim() }
+      : { locality: undefined, street: globals.address };
+  })();
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Bakery",
     name: globals.brandName,
-    description: siteDescription,
+    description: globals.aboutShort ?? siteDescription,
     url: siteUrl,
     telephone: globals.phone,
-    email: "hello@delovkusa.ru",
+    ...(globals.email && { email: globals.email }),
     address: {
       "@type": "PostalAddress",
-      addressLocality: "Казань",
-      streetAddress: "ул. Гвардейская, 54",
+      ...(parsedAddress.locality && { addressLocality: parsedAddress.locality }),
+      streetAddress: parsedAddress.street,
       addressCountry: "RU",
     },
     ...(globals.location && {
@@ -122,7 +134,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         longitude: globals.location.lng,
       },
     }),
-    openingHours: "Mo-Su 08:00-20:00",
+    openingHoursSpecification: {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+      opens: "08:00",
+      closes: "20:00",
+      description: globals.workingHours,
+    },
     servesCuisine: ["Bakery", "Russian", "Fast Food"],
     image: `${siteUrl}/opengraph-image`,
     priceRange: "₽₽",
