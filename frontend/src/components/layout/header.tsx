@@ -16,21 +16,18 @@ import {
 } from "@/components/ui/icon";
 import { Counter } from "@/components/ui/badge";
 import { SsoButtons } from "@/components/auth/sso-buttons";
-import type { Category, Globals } from "@/types";
+import type { Category, Globals, Location, NavMenuItem } from "@/types";
 
 interface HeaderProps {
   categories: Category[];
   globals: Globals;
+  primaryLocation: Location | null;
+  headerNav: NavMenuItem[];
 }
 
-const navLinks = [
-  { href: "/catalog", label: "Каталог" },
-  { href: "/about", label: "О компании" },
-  { href: "/contacts", label: "Контакты" },
-  { href: "/promotions", label: "Акции" },
-];
-
-export function Header({ categories, globals }: HeaderProps) {
+export function Header({ categories, globals, primaryLocation, headerNav }: HeaderProps) {
+  const addr = primaryLocation?.address ?? globals.address ?? "";
+  const hours = primaryLocation?.workingHours ?? globals.workingHours ?? "";
   const totalItems = useCart((s) => s.totalItems());
   const totalPrice = useCart((s) => s.totalPrice());
   const [mounted, setMounted] = useState(false);
@@ -94,8 +91,8 @@ export function Header({ categories, globals }: HeaderProps) {
 
             {/* Desktop nav */}
             <nav className="hidden lg:flex items-center gap-6 xl:gap-10 ml-4 xl:ml-6 text-[15px] font-medium text-ink-soft whitespace-nowrap">
-              {navLinks.map((link) => (
-                <Link key={link.href} href={link.href} className="hover:text-brand transition-colors">
+              {headerNav.map((link) => (
+                <Link key={link.id} href={link.href} className="hover:text-brand transition-colors">
                   {link.label}
                 </Link>
               ))}
@@ -105,9 +102,9 @@ export function Header({ categories, globals }: HeaderProps) {
             <div className="hidden xl:flex items-start gap-2 ml-auto text-[14px] font-semibold text-ink whitespace-nowrap">
               <PinIcon size={20} className="shrink-0 mt-0.5" />
               <div className="leading-tight">
-                {globals.address}
+                {addr}
                 <small className="block text-muted text-[13px] font-medium mt-0.5">
-                  {globals.workingHours}
+                  {hours}
                 </small>
               </div>
             </div>
@@ -211,9 +208,9 @@ export function Header({ categories, globals }: HeaderProps) {
               </button>
             </div>
             <nav className="flex flex-col gap-1">
-              {navLinks.map((link) => (
+              {headerNav.map((link) => (
                 <Link
-                  key={link.href}
+                  key={link.id}
                   href={link.href}
                   onClick={() => setMenuOpen(false)}
                   className="py-3 px-3 rounded-[14px] hover:bg-black/5 text-[17px] font-semibold"
@@ -240,8 +237,8 @@ export function Header({ categories, globals }: HeaderProps) {
             <div className="mt-6 pt-5 border-t border-black/10 flex items-start gap-2 px-2">
               <PinIcon size={18} className="text-muted mt-0.5" />
               <div className="text-[13px] leading-snug">
-                {globals.address}
-                <div className="text-muted">{globals.workingHours}</div>
+                {addr}
+                <div className="text-muted">{hours}</div>
               </div>
             </div>
           </aside>

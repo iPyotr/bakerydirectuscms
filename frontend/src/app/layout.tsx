@@ -6,7 +6,7 @@ import { QueryProvider } from "@/components/providers/query-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
-import { fetchCategories, fetchGlobals, getPrimaryLocation } from "@/lib/api";
+import { fetchCategories, fetchGlobals, fetchNavMenu, getPrimaryLocation } from "@/lib/api";
 import type { ReactNode } from "react";
 
 const inter = Inter({
@@ -82,10 +82,11 @@ export async function generateViewport(): Promise<Viewport> {
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [categories, globals, primary] = await Promise.all([
+  const [categories, globals, primary, headerNav] = await Promise.all([
     fetchCategories(),
     fetchGlobals(),
     getPrimaryLocation(),
+    fetchNavMenu("header"),
   ]);
 
   const addr = primary?.address ?? globals.address ?? "";
@@ -146,7 +147,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     >
       <body className="min-h-dvh flex flex-col bg-stage text-ink">
         <QueryProvider>
-          <Header categories={categories} globals={globals} />
+          <Header
+            categories={categories}
+            globals={globals}
+            primaryLocation={primary}
+            headerNav={headerNav}
+          />
           <main className="flex-1 pb-24 md:pb-12">{children}</main>
           <Footer categories={categories} globals={globals} />
           <MobileTabBar />
