@@ -6,7 +6,7 @@ import { QueryProvider } from "@/components/providers/query-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
-import { fetchCategories, fetchGlobals } from "@/lib/api";
+import { fetchCategories, fetchGlobals, getPrimaryLocation } from "@/lib/api";
 import type { ReactNode } from "react";
 
 const inter = Inter({
@@ -28,127 +28,115 @@ const caveat = Caveat({
 });
 
 const siteUrl = process.env.SITE_URL ?? "https://delovkusa.openlabio.ru";
-const siteName = "Дело вкуса";
-const siteDescription =
-  "Ремесленная пекарня и собственное производство в Казани: хлеб, сытная и сладкая выпечка, курица гриль, шаурма и полуфабрикаты ручной лепки. Свежая выпечка каждый день, удобный самовывоз.";
 
-// Static metadata (used as defaults). Pages with own metadata via fetchGlobals
-// can override these dynamically.
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: `${siteName} — свежая выпечка каждый день`,
-    template: `%s · ${siteName}`,
-  },
-  description: siteDescription,
-  applicationName: siteName,
-  authors: [{ name: siteName }],
-  creator: siteName,
-  publisher: siteName,
-  keywords: [
-    "пекарня казань",
-    "свежая выпечка",
-    "хлеб казань",
-    "курица гриль",
-    "шаурма казань",
-    "пельмени ручной лепки",
-    "самовывоз выпечка",
-    "дело вкуса",
-  ],
-  category: "food",
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    type: "website",
-    locale: "ru_RU",
-    url: siteUrl,
-    siteName,
-    title: `${siteName} — свежая выпечка каждый день`,
-    description: siteDescription,
-    // Картинка подхватывается из app/opengraph-image.tsx автоматически.
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${siteName} — свежая выпечка каждый день`,
-    description: siteDescription,
-    // Картинка — app/twitter-image.tsx.
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+export async function generateMetadata(): Promise<Metadata> {
+  const g = await fetchGlobals();
+  const taglineSuffix = [g.taglineMain, g.taglineAccent].filter(Boolean).join(" ").trim();
+  const fallbackTitle = `${g.brandName}${taglineSuffix ? " — " + taglineSuffix : ""}`;
+  const title = g.metaTitle ?? fallbackTitle;
+  const description = g.metaDescription ?? g.aboutShort ?? "";
+  return {
+    metadataBase: new URL(siteUrl),
+    title: { default: title, template: `%s · ${g.brandName}` },
+    description,
+    applicationName: g.brandName,
+    authors: [{ name: g.brandName }],
+    creator: g.brandName,
+    publisher: g.brandName,
+    keywords: g.seoKeywords ?? [],
+    category: "food",
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      locale: "ru_RU",
+      url: siteUrl,
+      siteName: g.brandName,
+      title,
+      description,
+    },
+    twitter: { card: "summary_large_image", title, description },
+    robots: {
       index: true,
       follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
     },
-  },
-  // Для Telegram и ВК достаточно стандартных OG-тегов — они парсят `og:*`.
-  // Yandex тоже уважает OG. Отдельные `yandex-verification` можно добавить
-  // в meta.verification если нужно подтверждение в Вебмастере.
-  // verification: { yandex: "...", google: "..." },
-};
+  };
+}
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#eae6e1" },
-    { media: "(prefers-color-scheme: dark)", color: "#1b1714" },
-  ],
-};
+export async function generateViewport(): Promise<Viewport> {
+  const g = await fetchGlobals();
+  return {
+    width: "device-width",
+    initialScale: 1,
+    themeColor: [
+      { media: "(prefers-color-scheme: light)", color: g.backgroundColor ?? "#eae6e1" },
+      { media: "(prefers-color-scheme: dark)", color: "#1b1714" },
+    ],
+  };
+}
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [categories, globals] = await Promise.all([fetchCategories(), fetchGlobals()]);
+  const [categories, globals, primary] = await Promise.all([
+    fetchCategories(),
+    fetchGlobals(),
+    getPrimaryLocation(),
+  ]);
 
-  // Try to split "г. Корсаков, ул. Гвардейская, 54" into locality + street.
+  const addr = primary?.address ?? globals.address ?? "";
+  const phone = primary?.phone ?? globals.phone ?? "";
+  const geo = primary?.location ?? globals.location;
+  const opens = globals.opensAt ?? "08:00";
+  const closes = globals.closesAt ?? "20:00";
+
   const parsedAddress = (() => {
-    const m = globals.address.match(
-      /^(?:г\.?\s*|город\s+)?([^,]+?),\s*(.+)$/i,
-    );
+    if (!addr) return { locality: undefined, street: "" };
+    const m = addr.match(/^(?:г\.?\s*|город\s+)?([^,]+?),\s*(.+)$/i);
     return m
       ? { locality: m[1].trim(), street: m[2].trim() }
-      : { locality: undefined, street: globals.address };
+      : { locality: undefined, street: addr };
   })();
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Bakery",
     name: globals.brandName,
-    description: globals.aboutShort ?? siteDescription,
+    description: globals.aboutShort ?? globals.metaDescription ?? "",
     url: siteUrl,
-    telephone: globals.phone,
-    ...(globals.email && { email: globals.email }),
-    address: {
-      "@type": "PostalAddress",
-      ...(parsedAddress.locality && { addressLocality: parsedAddress.locality }),
-      streetAddress: parsedAddress.street,
-      addressCountry: "RU",
-    },
-    ...(globals.location && {
+    ...(phone && { telephone: phone }),
+    ...(globals.emailGeneral && { email: globals.emailGeneral }),
+    ...(addr && {
+      address: {
+        "@type": "PostalAddress",
+        ...(parsedAddress.locality && { addressLocality: parsedAddress.locality }),
+        streetAddress: parsedAddress.street,
+        addressCountry: "RU",
+      },
+    }),
+    ...(geo && {
       geo: {
         "@type": "GeoCoordinates",
-        latitude: globals.location.lat,
-        longitude: globals.location.lng,
+        latitude: geo.lat,
+        longitude: geo.lng,
       },
     }),
     openingHoursSpecification: {
       "@type": "OpeningHoursSpecification",
       dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-      opens: "08:00",
-      closes: "20:00",
-      description: globals.workingHours,
+      opens,
+      closes,
+      ...(primary?.workingHours && { description: primary.workingHours }),
+      ...(!primary && globals.workingHours && { description: globals.workingHours }),
     },
-    servesCuisine: ["Bakery", "Russian", "Fast Food"],
     image: `${siteUrl}/opengraph-image`,
-    priceRange: "₽₽",
-    sameAs: [
-      globals.social?.vk,
-      globals.social?.telegram,
-      globals.social?.instagram,
-    ].filter(Boolean),
+    sameAs: [globals.social?.vk, globals.social?.telegram, globals.social?.instagram].filter(
+      Boolean,
+    ),
   };
 
   return (
