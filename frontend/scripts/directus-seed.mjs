@@ -1439,7 +1439,7 @@ async function ensureRevalidateFlow() {
       options: {
         type: "action",
         scope: ["items.create", "items.update", "items.delete"],
-        collections: ["categories", "products", "globals"],
+        collections: ["categories", "products", "globals", "nav_menu_items"],
       },
     }),
   );
@@ -1704,33 +1704,48 @@ async function main() {
 
   // Nav menu items
   console.log("\n[seed] ==== NAV MENU ====");
+  const navData = [
+    // header
+    { location: "header", label: "Каталог", href: "/catalog", sort: 1 },
+    { location: "header", label: "О компании", href: "/about", sort: 2 },
+    { location: "header", label: "Контакты", href: "/contacts", sort: 3 },
+    { location: "header", label: "Акции", href: "/promotions", sort: 4 },
+    // footer-customers (4 items)
+    { location: "footer-customers", label: "Каталог", href: "/catalog", sort: 1 },
+    { location: "footer-customers", label: "Акции", href: "/promotions", sort: 2 },
+    { location: "footer-customers", label: "Доставка и самовывоз", href: "/contacts", sort: 3 },
+    { location: "footer-customers", label: "Программа лояльности", href: "/loyalty", sort: 4 },
+    // footer-company (4 items)
+    { location: "footer-company", label: "О нас", href: "/about", sort: 1 },
+    { location: "footer-company", label: "Производство", href: "/about#production", sort: 2 },
+    { location: "footer-company", label: "Оптовым клиентам", href: "/contacts#b2b", sort: 3 },
+    { location: "footer-company", label: "Вакансии", href: "/about#jobs", sort: 4 },
+    // mobile-tab
+    { location: "mobile-tab", label: "Главная", href: "/", icon: "home", sort: 1 },
+    { location: "mobile-tab", label: "Каталог", href: "/catalog", icon: "catalog", sort: 2 },
+    { location: "mobile-tab", label: "Корзина", href: "/cart", icon: "cart", sort: 3 },
+    { location: "mobile-tab", label: "Акции", href: "/promotions", icon: "promo", sort: 4 },
+    { location: "mobile-tab", label: "Профиль", href: "/profile", icon: "profile", sort: 5 },
+  ].map(d => ({ ...d, status: "published" }));
   const existingNavItems = await client.request(
     readItems("nav_menu_items", { fields: ["id"], limit: 1 }),
   );
   if (existingNavItems.length) {
-    console.log("[seed] nav_menu_items already populated, skipping");
+    // Backfill: insert any items from navData that are NOT already in the live DB.
+    // Match by (location, label) — labels are user-facing and stable; sorts can
+    // shift when new items are inserted in the middle of a list.
+    const existing = await client.request(
+      readItems("nav_menu_items", { fields: ["location", "label"], limit: -1 }),
+    );
+    const existingKeys = new Set(existing.map(r => `${r.location}:${r.label}`));
+    const toInsert = navData.filter(d => !existingKeys.has(`${d.location}:${d.label}`));
+    if (toInsert.length) {
+      const created = await client.request(createItems("nav_menu_items", toInsert));
+      console.log(`[seed] ✓ backfilled ${created.length} new nav items`);
+    } else {
+      console.log("[seed] nav_menu_items already complete, skipping");
+    }
   } else {
-    const navData = [
-      // header
-      { location: "header", label: "Каталог", href: "/catalog", sort: 1 },
-      { location: "header", label: "О компании", href: "/about", sort: 2 },
-      { location: "header", label: "Контакты", href: "/contacts", sort: 3 },
-      { location: "header", label: "Акции", href: "/promotions", sort: 4 },
-      // footer-customers
-      { location: "footer-customers", label: "Каталог", href: "/catalog", sort: 1 },
-      { location: "footer-customers", label: "Акции", href: "/promotions", sort: 2 },
-      { location: "footer-customers", label: "Доставка и самовывоз", href: "/contacts", sort: 3 },
-      // footer-company
-      { location: "footer-company", label: "О нас", href: "/about", sort: 1 },
-      { location: "footer-company", label: "Производство", href: "/about#production", sort: 2 },
-      { location: "footer-company", label: "Вакансии", href: "/about#jobs", sort: 3 },
-      // mobile-tab
-      { location: "mobile-tab", label: "Главная", href: "/", icon: "home", sort: 1 },
-      { location: "mobile-tab", label: "Каталог", href: "/catalog", icon: "catalog", sort: 2 },
-      { location: "mobile-tab", label: "Корзина", href: "/cart", icon: "cart", sort: 3 },
-      { location: "mobile-tab", label: "Акции", href: "/promotions", icon: "promo", sort: 4 },
-      { location: "mobile-tab", label: "Профиль", href: "/profile", icon: "profile", sort: 5 },
-    ].map(d => ({ ...d, status: "published" }));
     const created = await client.request(createItems("nav_menu_items", navData));
     console.log(`[seed] ✓ inserted ${created.length} nav items`);
   }
