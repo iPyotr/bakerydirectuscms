@@ -1,23 +1,39 @@
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { fetchGlobals } from "@/lib/api";
+import { fetchGlobals, getPrimaryLocation } from "@/lib/api";
 
-export const alt = "Дело вкуса — пекарня, кулинария и полуфабрикаты";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 // Re-generate when Directus webhook fires revalidatePath("/", "layout").
 export const revalidate = 300;
 
+export async function generateImageMetadata() {
+  const g = await fetchGlobals();
+  const tagline = [g.taglineMain, g.taglineAccent].filter(Boolean).join(" ").trim();
+  const altText = `${g.brandName}${tagline ? " — " + tagline : ""}`;
+  return [
+    {
+      id: "default",
+      alt: altText,
+      size,
+      contentType,
+    },
+  ];
+}
+
 export default async function Image() {
-  const [logoSvg, globals] = await Promise.all([
+  const [logoSvg, globals, primary] = await Promise.all([
     readFile(join(process.cwd(), "public/ico/brand-mark.svg"), "utf-8"),
     fetchGlobals(),
+    getPrimaryLocation(),
   ]);
   const logoDataUri = `data:image/svg+xml;base64,${Buffer.from(logoSvg).toString("base64")}`;
 
-  const address = globals.addressShort || globals.address;
-  const hours = globals.workingHours;
+  const address = primary?.address ?? globals.addressShort ?? globals.address ?? "";
+  const hours = primary?.workingHours ?? globals.workingHours ?? "";
+  const taglineMain = globals.taglineMain ?? "Свежая выпечка";
+  const taglineAccent = globals.taglineAccent ?? "каждый день";
   const siteHost = (process.env.SITE_URL ?? "https://delovkusa.openlabio.ru")
     .replace(/^https?:\/\//, "")
     .replace(/\/$/, "");
@@ -104,7 +120,7 @@ export default async function Image() {
               color: "#23201d",
             }}
           >
-            Свежая выпечка
+            {taglineMain}
           </div>
           <div
             style={{
@@ -117,7 +133,7 @@ export default async function Image() {
               color: "#d4a93d",
             }}
           >
-            каждый день
+            {taglineAccent}
           </div>
         </div>
 

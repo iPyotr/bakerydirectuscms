@@ -2,7 +2,7 @@
 // Re-export чтобы не дублировать код.
 export {
   default,
-  alt,
+  generateImageMetadata,
   size,
   contentType,
 } from "./opengraph-image";
