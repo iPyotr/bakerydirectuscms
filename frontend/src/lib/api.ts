@@ -202,16 +202,6 @@ export async function fetchGlobals(): Promise<Globals> {
       brandName: row.brand_name,
       legalName: row.legal_name ?? undefined,
       inn: row.inn ?? undefined,
-      // legacy / soon-to-be-removed (Phase 6.1):
-      phone: row.phone ?? undefined,
-      email: row.email ?? undefined,
-      address: row.address ?? undefined,
-      addressShort: row.address_short ?? row.address ?? undefined,
-      workingHours: row.working_hours ?? undefined,
-      location:
-        row.location?.lat != null && row.location?.lng != null
-          ? { lat: row.location.lat, lng: row.location.lng, zoom: row.location.zoom ?? 16 }
-          : undefined,
       aboutShort: row.about_short ?? undefined,
       aboutLong: row.about_long ?? undefined,
       productionMd: row.production_md ?? undefined,

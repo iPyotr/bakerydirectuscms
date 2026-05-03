@@ -30,8 +30,8 @@ export default async function Image() {
   ]);
   const logoDataUri = `data:image/svg+xml;base64,${Buffer.from(logoSvg).toString("base64")}`;
 
-  const address = primary?.address ?? globals.addressShort ?? globals.address ?? "";
-  const hours = primary?.workingHours ?? globals.workingHours ?? "";
+  const address = primary?.address ?? "";
+  const hours = primary?.workingHours ?? "";
   const taglineMain = globals.taglineMain ?? "Свежая выпечка";
   const taglineAccent = globals.taglineAccent ?? "каждый день";
   const siteHost = (process.env.SITE_URL ?? "https://delovkusa.openlabio.ru")

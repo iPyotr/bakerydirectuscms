@@ -26,8 +26,8 @@ interface HeaderProps {
 }
 
 export function Header({ categories, globals, primaryLocation, headerNav }: HeaderProps) {
-  const addr = primaryLocation?.address ?? globals.address ?? "";
-  const hours = primaryLocation?.workingHours ?? globals.workingHours ?? "";
+  const addr = primaryLocation?.address ?? "";
+  const hours = primaryLocation?.workingHours ?? "";
   const totalItems = useCart((s) => s.totalItems());
   const totalPrice = useCart((s) => s.totalPrice());
   const [mounted, setMounted] = useState(false);

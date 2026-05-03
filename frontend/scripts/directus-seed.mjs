@@ -361,36 +361,6 @@ const globalsFields = [
     schema: {},
   },
   {
-    field: "phone",
-    type: "string",
-    meta: { interface: "input", required: true, width: "half" },
-    schema: { is_nullable: false },
-  },
-  {
-    field: "email",
-    type: "string",
-    meta: { interface: "input", width: "half" },
-    schema: {},
-  },
-  {
-    field: "address",
-    type: "string",
-    meta: { interface: "input", width: "full", required: true },
-    schema: { is_nullable: false },
-  },
-  {
-    field: "address_short",
-    type: "string",
-    meta: { interface: "input", width: "half", note: "Короткая версия (для меню)" },
-    schema: {},
-  },
-  {
-    field: "working_hours",
-    type: "string",
-    meta: { interface: "input", width: "half" },
-    schema: {},
-  },
-  {
     field: "about_short",
     type: "text",
     meta: { interface: "input-multiline", width: "full", note: "2-3 предложения для footer / SEO" },
@@ -400,17 +370,6 @@ const globalsFields = [
     field: "about_long",
     type: "text",
     meta: { interface: "input-rich-text-md", width: "full", note: "Полное описание для страницы «О компании»" },
-    schema: {},
-  },
-  {
-    field: "location",
-    type: "json",
-    meta: {
-      interface: "input-code",
-      width: "full",
-      options: { language: "json" },
-      note: 'Геокоординаты: {"lat":46.634,"lng":142.782,"zoom":16}',
-    },
     schema: {},
   },
   {
@@ -570,16 +529,10 @@ const globalsData = {
   brand_name: "Дело вкуса",
   legal_name: "ООО «Дело вкуса»",
   inn: "1650000000",
-  phone: "+7 (843) 555-01-20",
-  email: "hello@delovkusa.ru",
-  address: "г. Казань, ул. Гвардейская, 54",
-  address_short: "Казань, Гвардейская 54",
-  working_hours: "Ежедневно 08:00 – 20:00",
   about_short:
     "Пекарня, кулинария и собственное производство в Казани. Свежая выпечка каждое утро, домашняя кухня и полуфабрикаты ручной лепки.",
   about_long:
     "«Дело вкуса» — мультиформатная гастрономическая платформа, объединяющая три направления: ремесленную пекарню и кондитерскую, горячую кулинарию (курица гриль, шаурма, готовые обеды) и собственное производство замороженных полуфабрикатов. Мы печём хлеб на собственной закваске, делаем сытную и сладкую выпечку по проверенным рецептам, готовим горячие блюда и лепим пельмени, вареники и манты вручную.",
-  location: { lat: 46.634980, lng: 142.782579, zoom: 16 },
   social: {
     vk: "https://vk.com/delovkusa",
     telegram: "https://t.me/delovkusa",
@@ -1249,12 +1202,9 @@ const publicPermissions = [
     action: "read",
     fields: [
       "brand_name", "legal_name", "inn",
-      "phone",
-      "email", "email_general", "email_hr", "email_b2b",
-      "address", "address_short", "working_hours",
+      "email_general", "email_hr", "email_b2b",
       "about_short", "about_long",
       "production_md", "careers_md",
-      "location",
       "social", "app_links",
       "tagline_main", "tagline_accent",
       "meta_title", "meta_description", "seo_keywords",

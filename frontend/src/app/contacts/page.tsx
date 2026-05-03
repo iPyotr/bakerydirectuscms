@@ -29,7 +29,7 @@ export default async function ContactsPage() {
   const workingHours = primary.workingHours;
   const location = primary.location;
   const image = primary.image;
-  const emailGeneral = globals.emailGeneral ?? globals.email;
+  const emailGeneral = globals.emailGeneral;
 
   return (
     <Container className="pt-6 md:pt-10">

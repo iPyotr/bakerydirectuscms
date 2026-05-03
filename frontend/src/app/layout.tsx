@@ -100,9 +100,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       fetchNavMenu("mobile-tab"),
     ]);
 
-  const addr = primary?.address ?? globals.address ?? "";
-  const phone = primary?.phone ?? globals.phone ?? "";
-  const geo = primary?.location ?? globals.location;
+  const addr = primary?.address ?? "";
+  const phone = primary?.phone ?? "";
+  const geo = primary?.location;
   const opens = globals.opensAt ?? "08:00";
   const closes = globals.closesAt ?? "20:00";
 
@@ -143,7 +143,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       opens,
       closes,
       ...(primary?.workingHours && { description: primary.workingHours }),
-      ...(!primary && globals.workingHours && { description: globals.workingHours }),
     },
     image: `${siteUrl}/opengraph-image`,
     sameAs: [globals.social?.vk, globals.social?.telegram, globals.social?.instagram].filter(

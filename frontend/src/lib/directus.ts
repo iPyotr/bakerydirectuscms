@@ -80,16 +80,10 @@ export interface DirectusSchema {
     brand_name: string;
     legal_name?: string | null;
     inn?: string | null;
-    phone?: string | null;
-    email?: string | null;
-    address?: string | null;
-    address_short?: string | null;
-    working_hours?: string | null;
     about_short?: string | null;
     about_long?: string | null;
     production_md?: string | null;
     careers_md?: string | null;
-    location?: { lat?: number | null; lng?: number | null; zoom?: number | null } | null;
     social?: Record<string, string | undefined> | null;
     app_links?: Record<string, string | undefined> | null;
     email_general?: string | null;

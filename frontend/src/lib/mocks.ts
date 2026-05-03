@@ -4,13 +4,6 @@ export const mockGlobals: Globals = {
   brandName: "Дело вкуса",
   legalName: "ООО «Дело вкуса»",
   inn: "1650000000",
-  // Legacy fields (deprecated, will be removed in Phase 6.1).
-  phone: "+7 (4243) 555-01-20",
-  email: "hello@delovkusa.ru",
-  address: "г. Корсаков, ул. Гвардейская, 54",
-  addressShort: "Корсаков, Гвардейская 54",
-  workingHours: "Ежедневно 08:00 – 20:00",
-  location: { lat: 46.634980, lng: 142.782579, zoom: 16 },
 
   aboutShort:
     "Пекарня, кулинария и собственное производство в Корсакове с 2013 года. Свежая выпечка каждое утро, домашняя кухня и полуфабрикаты ручной лепки.",

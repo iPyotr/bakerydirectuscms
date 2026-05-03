@@ -20,10 +20,10 @@ export function Footer({
   companyNav,
   legalLinks,
 }: FooterProps) {
-  const addr = primaryLocation?.address ?? globals.address ?? "";
-  const hours = primaryLocation?.workingHours ?? globals.workingHours ?? "";
-  const phone = primaryLocation?.phone ?? globals.phone;
-  const email = globals.emailGeneral ?? globals.email;
+  const addr = primaryLocation?.address ?? "";
+  const hours = primaryLocation?.workingHours ?? "";
+  const phone = primaryLocation?.phone;
+  const email = globals.emailGeneral;
   const aboutShort = globals.aboutShort ?? "";
   const paymentMethods = globals.paymentMethods ?? [];
   const year = new Date().getFullYear();

@@ -7,7 +7,7 @@ export const revalidate = 300;
 
 export default async function AboutPage() {
   const g = await fetchGlobals();
-  const hrEmail = g.emailHr ?? g.emailGeneral ?? g.email;
+  const hrEmail = g.emailHr ?? g.emailGeneral;
 
   return (
     <Container className="pt-6 md:pt-10">

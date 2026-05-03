@@ -50,15 +50,6 @@ export interface Globals {
   legalName?: string;
   inn?: string;
 
-  // Legacy fields (deprecated — frontend reads contacts via getPrimaryLocation()).
-  // Kept for safe migration; will be removed in Phase 6.1 after consumers are switched.
-  phone?: string;
-  email?: string;
-  address?: string;
-  addressShort?: string;
-  workingHours?: string;
-  location?: GeoLocation;
-
   aboutShort?: string;
   aboutLong?: string;
   productionMd?: string;
