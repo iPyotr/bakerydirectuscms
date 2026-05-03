@@ -4,15 +4,16 @@ import { CategoriesGrid } from "@/components/home/categories-grid";
 import { PopularProducts } from "@/components/home/popular-products";
 import { Benefits } from "@/components/home/benefits";
 import { CategorySliders } from "@/components/home/category-sliders";
-import { fetchCategories, fetchHeroSlides, fetchPopularProducts } from "@/lib/api";
+import { fetchBenefits, fetchCategories, fetchHeroSlides, fetchPopularProducts } from "@/lib/api";
 
 export const revalidate = 300;
 
 export default async function HomePage() {
-  const [categories, popular, heroSlides] = await Promise.all([
+  const [categories, popular, heroSlides, benefits] = await Promise.all([
     fetchCategories(),
     fetchPopularProducts(),
     fetchHeroSlides(),
+    fetchBenefits(),
   ]);
 
   return (
@@ -23,7 +24,7 @@ export default async function HomePage() {
       </div>
       <PopularProducts products={popular} />
       <CategorySliders categories={categories} />
-      <Benefits />
+      <Benefits items={benefits} />
     </Container>
   );
 }
