@@ -6,7 +6,13 @@ import { QueryProvider } from "@/components/providers/query-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
-import { fetchCategories, fetchGlobals, fetchNavMenu, getPrimaryLocation } from "@/lib/api";
+import {
+  fetchCategories,
+  fetchFooterLegalLinks,
+  fetchGlobals,
+  fetchNavMenu,
+  getPrimaryLocation,
+} from "@/lib/api";
 import type { ReactNode } from "react";
 
 const inter = Inter({
@@ -82,12 +88,17 @@ export async function generateViewport(): Promise<Viewport> {
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [categories, globals, primary, headerNav] = await Promise.all([
-    fetchCategories(),
-    fetchGlobals(),
-    getPrimaryLocation(),
-    fetchNavMenu("header"),
-  ]);
+  const [categories, globals, primary, headerNav, customersNav, companyNav, legalLinks, mobileTabNav] =
+    await Promise.all([
+      fetchCategories(),
+      fetchGlobals(),
+      getPrimaryLocation(),
+      fetchNavMenu("header"),
+      fetchNavMenu("footer-customers"),
+      fetchNavMenu("footer-company"),
+      fetchFooterLegalLinks(),
+      fetchNavMenu("mobile-tab"),
+    ]);
 
   const addr = primary?.address ?? globals.address ?? "";
   const phone = primary?.phone ?? globals.phone ?? "";
@@ -154,8 +165,15 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             headerNav={headerNav}
           />
           <main className="flex-1 pb-24 md:pb-12">{children}</main>
-          <Footer categories={categories} globals={globals} />
-          <MobileTabBar />
+          <Footer
+            categories={categories}
+            globals={globals}
+            primaryLocation={primary}
+            customersNav={customersNav}
+            companyNav={companyNav}
+            legalLinks={legalLinks}
+          />
+          <MobileTabBar items={mobileTabNav} />
         </QueryProvider>
         <script
           type="application/ld+json"

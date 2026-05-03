@@ -1,36 +1,32 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ClockIcon, MailIcon, PhoneIcon, PinIcon } from "@/components/ui/icon";
-import type { Category, Globals } from "@/types";
+import type { Category, Globals, LegalPage, Location, NavMenuItem } from "@/types";
 
-const columns = [
-  {
-    title: "Покупателям",
-    links: [
-      { label: "Каталог", href: "/catalog" },
-      { label: "Акции", href: "/promotions" },
-      { label: "Доставка и самовывоз", href: "/contacts" },
-      { label: "Программа лояльности", href: "/loyalty" },
-    ],
-  },
-  {
-    title: "Компания",
-    links: [
-      { label: "О нас", href: "/about" },
-      { label: "Производство", href: "/about#production" },
-      { label: "Оптовым клиентам", href: "/contacts#b2b" },
-      { label: "Вакансии", href: "/about#jobs" },
-    ],
-  },
-];
+interface FooterProps {
+  categories: Category[];
+  globals: Globals;
+  primaryLocation: Location | null;
+  customersNav: NavMenuItem[];
+  companyNav: NavMenuItem[];
+  legalLinks: LegalPage[];
+}
 
 export function Footer({
   categories,
   globals,
-}: {
-  categories: Category[];
-  globals: Globals;
-}) {
+  primaryLocation,
+  customersNav,
+  companyNav,
+  legalLinks,
+}: FooterProps) {
+  const addr = primaryLocation?.address ?? globals.address ?? "";
+  const hours = primaryLocation?.workingHours ?? globals.workingHours ?? "";
+  const phone = primaryLocation?.phone ?? globals.phone;
+  const email = globals.emailGeneral ?? globals.email;
+  const aboutShort = globals.aboutShort ?? "";
+  const paymentMethods = globals.paymentMethods ?? [];
+  const year = new Date().getFullYear();
 
   return (
     <footer className="hidden md:block mt-16 md:mt-24 bg-[#1b1714] text-[#efe4d0] relative overflow-hidden">
@@ -40,38 +36,45 @@ export function Footer({
           <div className="col-span-2 lg:col-span-2">
             <Image
               src="/ico/brand-mark.svg"
-              alt="Дело вкуса"
+              alt={globals.brandName}
               width={220}
               height={26}
               className="h-7 md:h-8 w-auto mb-5"
             />
-            <p className="text-[#d3c7b0] text-sm leading-relaxed max-w-sm">
-              {globals.aboutShort ??
-                "Пекарня, кулинария и собственное производство в Казани. Свежая выпечка каждое утро и полуфабрикаты ручной лепки."}
-            </p>
+            {aboutShort && (
+              <p className="text-[#d3c7b0] text-sm leading-relaxed max-w-sm">{aboutShort}</p>
+            )}
             <div className="mt-5 flex flex-col gap-2 text-sm">
-              <a
-                href={`tel:${globals.phone.replace(/[^+\d]/g, "")}`}
-                className="inline-flex items-center gap-2 text-white hover:text-gold transition-colors"
-              >
-                <PhoneIcon size={18} />
-                {globals.phone}
-              </a>
-              <span className="inline-flex items-start gap-2 text-[#d3c7b0]">
-                <PinIcon size={18} className="mt-0.5 shrink-0" />
-                {globals.address}
-              </span>
-              <span className="inline-flex items-center gap-2 text-[#d3c7b0]">
-                <ClockIcon size={18} />
-                {globals.workingHours}
-              </span>
-              <a
-                href={`mailto:${globals.email ?? "hello@delovkusa.ru"}`}
-                className="inline-flex items-center gap-2 text-[#d3c7b0] hover:text-gold transition-colors"
-              >
-                <MailIcon size={18} />
-                {globals.email ?? "hello@delovkusa.ru"}
-              </a>
+              {phone && (
+                <a
+                  href={`tel:${phone.replace(/[^+\d]/g, "")}`}
+                  className="inline-flex items-center gap-2 text-white hover:text-gold transition-colors"
+                >
+                  <PhoneIcon size={18} />
+                  {phone}
+                </a>
+              )}
+              {addr && (
+                <span className="inline-flex items-start gap-2 text-[#d3c7b0]">
+                  <PinIcon size={18} className="mt-0.5 shrink-0" />
+                  {addr}
+                </span>
+              )}
+              {hours && (
+                <span className="inline-flex items-center gap-2 text-[#d3c7b0]">
+                  <ClockIcon size={18} />
+                  {hours}
+                </span>
+              )}
+              {email && (
+                <a
+                  href={`mailto:${email}`}
+                  className="inline-flex items-center gap-2 text-[#d3c7b0] hover:text-gold transition-colors"
+                >
+                  <MailIcon size={18} />
+                  {email}
+                </a>
+              )}
             </div>
           </div>
 
@@ -90,22 +93,35 @@ export function Footer({
             </ul>
           </div>
 
-          {columns.map((col) => (
-            <div key={col.title}>
-              <h4 className="text-gold font-semibold mb-4 text-sm uppercase tracking-wider">
-                {col.title}
-              </h4>
-              <ul className="flex flex-col gap-2 text-sm">
-                {col.links.map((l) => (
-                  <li key={l.href}>
-                    <Link href={l.href} className="hover:text-gold transition-colors">
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div>
+            <h4 className="text-gold font-semibold mb-4 text-sm uppercase tracking-wider">
+              Покупателям
+            </h4>
+            <ul className="flex flex-col gap-2 text-sm">
+              {customersNav.map((l) => (
+                <li key={l.id}>
+                  <Link href={l.href} className="hover:text-gold transition-colors">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-gold font-semibold mb-4 text-sm uppercase tracking-wider">
+              Компания
+            </h4>
+            <ul className="flex flex-col gap-2 text-sm">
+              {companyNav.map((l) => (
+                <li key={l.id}>
+                  <Link href={l.href} className="hover:text-gold transition-colors">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
 
           <div>
             <h4 className="text-gold font-semibold mb-4 text-sm uppercase tracking-wider">
@@ -138,15 +154,20 @@ export function Footer({
         </div>
 
         <div className="mt-12 pt-6 border-t border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-[#b6a98d]">
-          <span>© {new Date().getFullYear()} «Дело вкуса». Все права защищены.</span>
+          <span>© {year} «{globals.brandName}». Все права защищены.</span>
           <div className="flex flex-wrap items-center gap-4">
-            <Link href="/legal/terms" className="hover:text-gold transition-colors">
-              Публичная оферта
-            </Link>
-            <Link href="/legal/privacy" className="hover:text-gold transition-colors">
-              Политика конфиденциальности
-            </Link>
-            <span className="opacity-60">МИР · Visa · Mastercard · СБП</span>
+            {legalLinks.map((l) => (
+              <Link
+                key={l.id}
+                href={`/legal/${l.slug}`}
+                className="hover:text-gold transition-colors"
+              >
+                {l.title}
+              </Link>
+            ))}
+            {paymentMethods.length > 0 && (
+              <span className="opacity-60">{paymentMethods.join(" · ")}</span>
+            )}
           </div>
         </div>
       </div>
