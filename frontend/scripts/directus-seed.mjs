@@ -830,6 +830,61 @@ const locationFields = [
   },
 ];
 
+const navMenuItemsCollection = {
+  collection: "nav_menu_items",
+  meta: { icon: "menu", note: "Пункты меню (header/footer/mobile)", collection: "nav_menu_items" },
+  schema: { name: "nav_menu_items" },
+};
+const navMenuLocations = [
+  { text: "Header (десктоп + мобильное меню)", value: "header" },
+  { text: "Footer — Покупателям", value: "footer-customers" },
+  { text: "Footer — Компания", value: "footer-company" },
+  { text: "Mobile tab bar", value: "mobile-tab" },
+];
+const navMenuIcons = [
+  { text: "Главная", value: "home" },
+  { text: "Каталог", value: "catalog" },
+  { text: "Корзина", value: "cart" },
+  { text: "Акции", value: "promo" },
+  { text: "Профиль", value: "profile" },
+  { text: "(нет)", value: "none" },
+];
+const navMenuFields = [
+  statusField,
+  sortField,
+  {
+    field: "location",
+    type: "string",
+    meta: {
+      interface: "select-dropdown", required: true, width: "half",
+      options: { choices: navMenuLocations },
+    },
+    schema: { is_nullable: false },
+  },
+  {
+    field: "label",
+    type: "string",
+    meta: { interface: "input", required: true, width: "half" },
+    schema: { is_nullable: false },
+  },
+  {
+    field: "href",
+    type: "string",
+    meta: { interface: "input", required: true, width: "half", note: "Внутренняя или внешняя ссылка" },
+    schema: { is_nullable: false },
+  },
+  {
+    field: "icon",
+    type: "string",
+    meta: {
+      interface: "select-dropdown", width: "half",
+      options: { choices: navMenuIcons, allowNone: true },
+      note: "Только для location='mobile-tab'",
+    },
+    schema: { default_value: "none" },
+  },
+];
+
 const orderStatusField = {
   field: "status",
   type: "string",
@@ -1159,6 +1214,12 @@ const publicPermissions = [
     permissions: { status: { _eq: "published" } },
   },
   {
+    collection: "nav_menu_items",
+    action: "read",
+    fields: ["id", "location", "label", "href", "icon", "sort"],
+    permissions: { status: { _eq: "published" } },
+  },
+  {
     collection: "directus_files",
     action: "read",
     fields: [
@@ -1422,6 +1483,7 @@ async function main() {
   await ensureCollection(locationsCollection, [idField, ...locationFields]);
   await ensureCollection(ordersCollection, [idField, ...orderFields]);
   await ensureCollection(orderItemsCollection, [idField, ...orderItemFields]);
+  await ensureCollection(navMenuItemsCollection, [idField, ...navMenuFields]);
 
   // SEO fields on existing categories / products
   console.log("[seed]   SEO fields on categories/products");
@@ -1638,6 +1700,39 @@ async function main() {
   } else {
     await client.request(createItems("locations", locationsData));
     console.log(`[seed] ✓ inserted ${locationsData.length} location(s)`);
+  }
+
+  // Nav menu items
+  console.log("\n[seed] ==== NAV MENU ====");
+  const existingNavItems = await client.request(
+    readItems("nav_menu_items", { fields: ["id"], limit: 1 }),
+  );
+  if (existingNavItems.length) {
+    console.log("[seed] nav_menu_items already populated, skipping");
+  } else {
+    const navData = [
+      // header
+      { location: "header", label: "Каталог", href: "/catalog", sort: 1 },
+      { location: "header", label: "О компании", href: "/about", sort: 2 },
+      { location: "header", label: "Контакты", href: "/contacts", sort: 3 },
+      { location: "header", label: "Акции", href: "/promotions", sort: 4 },
+      // footer-customers
+      { location: "footer-customers", label: "Каталог", href: "/catalog", sort: 1 },
+      { location: "footer-customers", label: "Акции", href: "/promotions", sort: 2 },
+      { location: "footer-customers", label: "Доставка и самовывоз", href: "/contacts", sort: 3 },
+      // footer-company
+      { location: "footer-company", label: "О нас", href: "/about", sort: 1 },
+      { location: "footer-company", label: "Производство", href: "/about#production", sort: 2 },
+      { location: "footer-company", label: "Вакансии", href: "/about#jobs", sort: 3 },
+      // mobile-tab
+      { location: "mobile-tab", label: "Главная", href: "/", icon: "home", sort: 1 },
+      { location: "mobile-tab", label: "Каталог", href: "/catalog", icon: "catalog", sort: 2 },
+      { location: "mobile-tab", label: "Корзина", href: "/cart", icon: "cart", sort: 3 },
+      { location: "mobile-tab", label: "Акции", href: "/promotions", icon: "promo", sort: 4 },
+      { location: "mobile-tab", label: "Профиль", href: "/profile", icon: "profile", sort: 5 },
+    ].map(d => ({ ...d, status: "published" }));
+    const created = await client.request(createItems("nav_menu_items", navData));
+    console.log(`[seed] ✓ inserted ${created.length} nav items`);
   }
 
   // Customer role + policy + permissions
