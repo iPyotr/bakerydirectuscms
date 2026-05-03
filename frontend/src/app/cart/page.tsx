@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { MinusIcon, PlusIcon, CloseIcon, ArrowRightIcon, BagIcon } from "@/components/ui/icon";
@@ -14,6 +16,55 @@ export default function CartPage() {
   const remove = useCart((s) => s.remove);
   const totalPrice = useCart((s) => s.totalPrice());
   const clear = useCart((s) => s.clear);
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [pickupTime, setPickupTime] = useState("");
+  const [notes, setNotes] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [, startTransition] = useTransition();
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!phone.trim()) {
+      setError("Укажите телефон для связи");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const payload = {
+        contact_name: name.trim() || undefined,
+        contact_phone: phone.trim(),
+        pickup_time: pickupTime || undefined,
+        notes: notes.trim() || undefined,
+        total: totalPrice,
+        items: lines.map((l) => ({
+          product: l.product.id,
+          quantity: l.quantity,
+          price_snapshot: l.product.price,
+          product_slug_snapshot: l.product.slug,
+          product_title_snapshot: l.product.title,
+        })),
+      };
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Не удалось оформить заказ");
+        return;
+      }
+      const { id } = await res.json();
+      clear();
+      startTransition(() => router.push(`/cart/success?order=${id}`));
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (lines.length === 0) {
     return (
@@ -134,10 +185,43 @@ export default function CartPage() {
               {formatPrice(totalPrice)}
             </span>
           </div>
-          <Button size="xl" className="w-full mt-6">
-            Оформить заказ
-            <ArrowRightIcon size={20} />
-          </Button>
+
+          <form onSubmit={submit} className="mt-6 flex flex-col gap-3">
+            <input
+              type="text"
+              placeholder="Имя (необязательно)"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="bg-card rounded-[12px] px-4 py-3 text-[15px] border border-transparent focus:border-brand outline-none"
+            />
+            <input
+              type="tel"
+              required
+              placeholder="Телефон *"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="bg-card rounded-[12px] px-4 py-3 text-[15px] border border-transparent focus:border-brand outline-none"
+            />
+            <input
+              type="datetime-local"
+              placeholder="Время самовывоза"
+              value={pickupTime}
+              onChange={(e) => setPickupTime(e.target.value)}
+              className="bg-card rounded-[12px] px-4 py-3 text-[15px] border border-transparent focus:border-brand outline-none"
+            />
+            <textarea
+              placeholder="Комментарий (необязательно)"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              className="bg-card rounded-[12px] px-4 py-3 text-[15px] border border-transparent focus:border-brand outline-none resize-none"
+            />
+            {error && <p className="text-danger text-sm">{error}</p>}
+            <Button type="submit" size="xl" className="w-full mt-2" disabled={submitting}>
+              {submitting ? "Оформляем..." : "Оформить заказ"}
+              {!submitting && <ArrowRightIcon size={20} />}
+            </Button>
+          </form>
           <p className="text-xs text-muted mt-3">
             Нажимая «Оформить заказ», вы соглашаетесь с условиями обработки персональных данных.
           </p>
