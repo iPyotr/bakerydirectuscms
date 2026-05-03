@@ -885,6 +885,40 @@ const navMenuFields = [
   },
 ];
 
+const benefitsCollection = {
+  collection: "benefits",
+  meta: { icon: "star", note: "Преимущества на главной", collection: "benefits" },
+  schema: { name: "benefits" },
+};
+const benefitIcons = [
+  { text: "Sparkle (звёздочки)", value: "sparkle" },
+  { text: "Chef (повар)", value: "chef" },
+  { text: "Heart (сердце)", value: "heart" },
+  { text: "Pickup (самовывоз)", value: "pickup" },
+];
+const benefitFields = [
+  statusField,
+  sortField,
+  {
+    field: "icon",
+    type: "string",
+    meta: { interface: "select-dropdown", width: "half", required: true, options: { choices: benefitIcons } },
+    schema: { is_nullable: false },
+  },
+  {
+    field: "title",
+    type: "string",
+    meta: { interface: "input", width: "half", required: true },
+    schema: { is_nullable: false },
+  },
+  {
+    field: "description",
+    type: "text",
+    meta: { interface: "input-multiline", width: "full" },
+    schema: {},
+  },
+];
+
 const orderStatusField = {
   field: "status",
   type: "string",
@@ -1220,6 +1254,12 @@ const publicPermissions = [
     permissions: { status: { _eq: "published" } },
   },
   {
+    collection: "benefits",
+    action: "read",
+    fields: ["id", "icon", "title", "description", "sort"],
+    permissions: { status: { _eq: "published" } },
+  },
+  {
     collection: "directus_files",
     action: "read",
     fields: [
@@ -1439,7 +1479,7 @@ async function ensureRevalidateFlow() {
       options: {
         type: "action",
         scope: ["items.create", "items.update", "items.delete"],
-        collections: ["categories", "products", "globals", "nav_menu_items"],
+        collections: ["categories", "products", "globals", "nav_menu_items", "benefits"],
       },
     }),
   );
@@ -1484,6 +1524,7 @@ async function main() {
   await ensureCollection(ordersCollection, [idField, ...orderFields]);
   await ensureCollection(orderItemsCollection, [idField, ...orderItemFields]);
   await ensureCollection(navMenuItemsCollection, [idField, ...navMenuFields]);
+  await ensureCollection(benefitsCollection, [idField, ...benefitFields]);
 
   // SEO fields on existing categories / products
   console.log("[seed]   SEO fields on categories/products");
@@ -1748,6 +1789,26 @@ async function main() {
   } else {
     const created = await client.request(createItems("nav_menu_items", navData));
     console.log(`[seed] ✓ inserted ${created.length} nav items`);
+  }
+
+  // Benefits
+  console.log("\n[seed] ==== BENEFITS ====");
+  const benefitsData = [
+    { icon: "sparkle", title: "Натуральные ингредиенты", description: "Только отборные продукты без искусственных добавок", sort: 1, status: "published" },
+    { icon: "chef", title: "Свежая выпечка каждый день", description: "Ремесленный подход и круглосуточная пекарня", sort: 2, status: "published" },
+    { icon: "heart", title: "Готовим с душой", description: "Для вас и вашей семьи — как дома, только вкуснее", sort: 3, status: "published" },
+    { icon: "pickup", title: "Удобный самовывоз", description: "Быстро, без очередей, с бесконтактной оплатой", sort: 4, status: "published" },
+  ];
+  const existingBenefits = await client.request(
+    readItems("benefits", { fields: ["title"], limit: -1 }),
+  );
+  const existingTitles = new Set(existingBenefits.map(b => b.title));
+  const newBenefits = benefitsData.filter(b => !existingTitles.has(b.title));
+  if (newBenefits.length) {
+    const created = await client.request(createItems("benefits", newBenefits));
+    console.log(`[seed] ✓ inserted ${created.length} benefits`);
+  } else {
+    console.log("[seed] benefits already populated, skipping");
   }
 
   // Customer role + policy + permissions
