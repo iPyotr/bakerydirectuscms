@@ -10,16 +10,26 @@ export const revalidate = 300;
 
 export default async function ContactsPage() {
   const [globals, locations] = await Promise.all([fetchGlobals(), fetchLocations()]);
-
-  // Use the first location if any are configured, otherwise fall back to
-  // singleton globals (one-shop scenario).
   const primary = locations[0];
-  const title = primary?.title ?? `Пекарня «${globals.brandName}»`;
-  const address = primary?.address ?? globals.address;
-  const phone = primary?.phone ?? globals.phone;
-  const workingHours = primary?.workingHours ?? globals.workingHours;
-  const location = primary?.location ?? globals.location;
-  const image = primary?.image;
+
+  if (!primary) {
+    return (
+      <Container className="pt-6 md:pt-10">
+        <h1 className="text-[32px] md:text-[48px] font-bold tracking-tight font-display leading-none mb-6 md:mb-10">
+          Контакты
+        </h1>
+        <p className="text-muted">Точки продаж пока не настроены.</p>
+      </Container>
+    );
+  }
+
+  const title = primary.title;
+  const address = primary.address;
+  const phone = primary.phone;
+  const workingHours = primary.workingHours;
+  const location = primary.location;
+  const image = primary.image;
+  const emailGeneral = globals.emailGeneral ?? globals.email;
 
   return (
     <Container className="pt-6 md:pt-10">
@@ -49,27 +59,28 @@ export default async function ContactsPage() {
                 <div className="text-sm text-muted">Самовывоз, зона ожидания</div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <PhoneIcon />
-              <a
-                href={`tel:${phone.replace(/[^+\d]/g, "")}`}
-                className="font-semibold"
-              >
-                {phone}
-              </a>
-            </div>
-            {globals.email && (
+            {phone && (
               <div className="flex items-center gap-3">
-                <MailIcon />
-                <a href={`mailto:${globals.email}`} className="font-semibold">
-                  {globals.email}
+                <PhoneIcon />
+                <a href={`tel:${phone.replace(/[^+\d]/g, "")}`} className="font-semibold">
+                  {phone}
                 </a>
               </div>
             )}
-            <div className="flex items-center gap-3">
-              <ClockIcon />
-              <span>{workingHours}</span>
-            </div>
+            {emailGeneral && (
+              <div className="flex items-center gap-3">
+                <MailIcon />
+                <a href={`mailto:${emailGeneral}`} className="font-semibold">
+                  {emailGeneral}
+                </a>
+              </div>
+            )}
+            {workingHours && (
+              <div className="flex items-center gap-3">
+                <ClockIcon />
+                <span>{workingHours}</span>
+              </div>
+            )}
           </div>
         </section>
 
@@ -80,7 +91,6 @@ export default async function ContactsPage() {
         />
       </div>
 
-      {/* If multiple locations are configured, list the rest below. */}
       {locations.length > 1 && (
         <section className="mt-12">
           <h2 className="text-[24px] md:text-[32px] font-bold tracking-tight font-display leading-none mb-6">
@@ -88,10 +98,7 @@ export default async function ContactsPage() {
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {locations.slice(1).map((loc) => (
-              <article
-                key={loc.id}
-                className="bg-white rounded-[20px] p-5 shadow-card"
-              >
+              <article key={loc.id} className="bg-white rounded-[20px] p-5 shadow-card">
                 <h3 className="font-bold text-[17px]">{loc.title}</h3>
                 <div className="mt-3 flex items-start gap-2 text-sm">
                   <PinIcon size={18} className="shrink-0 mt-0.5 text-muted" />
