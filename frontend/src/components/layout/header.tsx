@@ -25,7 +25,7 @@ interface HeaderProps {
   headerNav: NavMenuItem[];
 }
 
-export function Header({ categories, globals, primaryLocation, headerNav }: HeaderProps) {
+export function Header({ categories, primaryLocation, headerNav }: HeaderProps) {
   const addr = primaryLocation?.address ?? "";
   const hours = primaryLocation?.workingHours ?? "";
   const totalItems = useCart((s) => s.totalItems());
