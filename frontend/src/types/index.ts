@@ -13,7 +13,10 @@ export interface Category {
   subtitle?: string;
   image: string;
   sliderImage?: string;
-  productsCount: number;
+  productsCount: number; // computed at fetch time via aggregate
+  metaTitle?: string;
+  metaDescription?: string;
+  ogImage?: string;
 }
 
 export type ProductTag = "hit" | "new" | "sale" | "veg";
@@ -30,6 +33,10 @@ export interface Product {
   tag?: ProductTag;
   description?: string;
   available: boolean;
+  popularityRank?: number;
+  metaTitle?: string;
+  metaDescription?: string;
+  ogImage?: string;
 }
 
 export interface GeoLocation {
@@ -42,14 +49,21 @@ export interface Globals {
   brandName: string;
   legalName?: string;
   inn?: string;
-  phone: string;
+
+  // Legacy fields (deprecated — frontend reads contacts via getPrimaryLocation()).
+  // Kept for safe migration; will be removed in Phase 6.1 after consumers are switched.
+  phone?: string;
   email?: string;
-  address: string;
-  addressShort: string;
-  workingHours: string;
+  address?: string;
+  addressShort?: string;
+  workingHours?: string;
+  location?: GeoLocation;
+
   aboutShort?: string;
   aboutLong?: string;
-  location?: GeoLocation;
+  productionMd?: string;
+  careersMd?: string;
+
   social: {
     vk?: string;
     telegram?: string;
@@ -61,6 +75,24 @@ export interface Globals {
     googlePlay?: string;
     ruStore?: string;
   };
+
+  emailGeneral?: string;
+  emailHr?: string;
+  emailB2b?: string;
+
+  taglineMain?: string;
+  taglineAccent?: string;
+
+  metaTitle?: string;
+  metaDescription?: string;
+  seoKeywords?: string[];
+
+  themeColor?: string;
+  backgroundColor?: string;
+  paymentMethods?: string[];
+
+  opensAt?: string;
+  closesAt?: string;
 }
 
 export interface Location {
@@ -80,4 +112,44 @@ export interface HeroSlide {
   description: string;
   image: string;
   cta: { label: string; href: string };
+}
+
+export interface Promotion {
+  id: string;
+  slug: string;
+  title: string;
+  tag?: ProductTag;
+  description?: string;
+  image?: string;
+  discountPercent?: number;
+}
+
+export type BenefitIcon = "sparkle" | "chef" | "heart" | "pickup";
+
+export interface Benefit {
+  id: string;
+  icon: BenefitIcon;
+  title: string;
+  description?: string;
+}
+
+export type NavLocation = "header" | "footer-customers" | "footer-company" | "mobile-tab";
+export type NavIcon = "home" | "catalog" | "cart" | "promo" | "profile" | "none";
+
+export interface NavMenuItem {
+  id: string;
+  location: NavLocation;
+  label: string;
+  href: string;
+  icon: NavIcon;
+  sort: number;
+}
+
+export interface LegalPage {
+  id: string;
+  slug: string;
+  title: string;
+  bodyMd: string;
+  showInFooter: boolean;
+  sort: number;
 }
