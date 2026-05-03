@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -10,11 +11,17 @@ import { assetUrl, formatPrice } from "@/lib/format";
 
 export const revalidate = 300;
 
-export async function generateMetadata(props: PageProps<"/product/[slug]">) {
+export async function generateMetadata(
+  props: PageProps<"/product/[slug]">,
+): Promise<Metadata> {
   const { slug } = await props.params;
   const product = await fetchProduct(slug);
   if (!product) return { title: "Товар не найден" };
-  return { title: product.title, description: product.description };
+  return {
+    title: product.metaTitle ?? product.title,
+    description: product.metaDescription ?? product.description,
+    openGraph: product.ogImage ? { images: [product.ogImage] } : undefined,
+  };
 }
 
 export default async function ProductPage(props: PageProps<"/product/[slug]">) {

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
@@ -11,11 +12,18 @@ export async function generateStaticParams() {
   return categories.map((c) => ({ category: c.slug }));
 }
 
-export async function generateMetadata(props: PageProps<"/catalog/[category]">) {
+export async function generateMetadata(
+  props: PageProps<"/catalog/[category]">,
+): Promise<Metadata> {
   const { category: slug } = await props.params;
   const categories = await fetchCategories();
   const category = categories.find((c) => c.slug === slug);
-  return { title: category?.title ?? "Категория" };
+  if (!category) return { title: "Категория" };
+  return {
+    title: category.metaTitle ?? category.title,
+    description: category.metaDescription,
+    openGraph: category.ogImage ? { images: [category.ogImage] } : undefined,
+  };
 }
 
 export default async function CategoryPage(props: PageProps<"/catalog/[category]">) {
