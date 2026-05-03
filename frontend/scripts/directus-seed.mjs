@@ -919,6 +919,40 @@ const benefitFields = [
   },
 ];
 
+const legalPagesCollection = {
+  collection: "legal_pages",
+  meta: { icon: "gavel", note: "Юридические страницы", collection: "legal_pages" },
+  schema: { name: "legal_pages" },
+};
+const legalPageFields = [
+  statusField,
+  sortField,
+  {
+    field: "slug",
+    type: "string",
+    meta: { interface: "input", required: true, width: "half", note: "URL: /legal/{slug}" },
+    schema: { is_nullable: false, is_unique: true },
+  },
+  {
+    field: "title",
+    type: "string",
+    meta: { interface: "input", required: true, width: "half" },
+    schema: { is_nullable: false },
+  },
+  {
+    field: "body_md",
+    type: "text",
+    meta: { interface: "input-rich-text-md", width: "full", required: true },
+    schema: { is_nullable: false },
+  },
+  {
+    field: "show_in_footer",
+    type: "boolean",
+    meta: { interface: "boolean", width: "half", special: ["cast-boolean"] },
+    schema: { default_value: true },
+  },
+];
+
 const orderStatusField = {
   field: "status",
   type: "string",
@@ -1260,6 +1294,12 @@ const publicPermissions = [
     permissions: { status: { _eq: "published" } },
   },
   {
+    collection: "legal_pages",
+    action: "read",
+    fields: ["id", "slug", "title", "body_md", "show_in_footer", "sort"],
+    permissions: { status: { _eq: "published" } },
+  },
+  {
     collection: "directus_files",
     action: "read",
     fields: [
@@ -1479,7 +1519,7 @@ async function ensureRevalidateFlow() {
       options: {
         type: "action",
         scope: ["items.create", "items.update", "items.delete"],
-        collections: ["categories", "products", "globals", "nav_menu_items", "benefits"],
+        collections: ["categories", "products", "globals", "nav_menu_items", "benefits", "legal_pages"],
       },
     }),
   );
@@ -1525,6 +1565,7 @@ async function main() {
   await ensureCollection(orderItemsCollection, [idField, ...orderItemFields]);
   await ensureCollection(navMenuItemsCollection, [idField, ...navMenuFields]);
   await ensureCollection(benefitsCollection, [idField, ...benefitFields]);
+  await ensureCollection(legalPagesCollection, [idField, ...legalPageFields]);
 
   // SEO fields on existing categories / products
   console.log("[seed]   SEO fields on categories/products");
@@ -1809,6 +1850,34 @@ async function main() {
     console.log(`[seed] ✓ inserted ${created.length} benefits`);
   } else {
     console.log("[seed] benefits already populated, skipping");
+  }
+
+  // Legal pages
+  console.log("\n[seed] ==== LEGAL PAGES ====");
+  const legalPagesData = [
+    {
+      slug: "terms",
+      title: "Публичная оферта",
+      body_md: "# Публичная оферта\n\nТекст оферты — заполнить в админке.",
+      show_in_footer: true, sort: 1, status: "published",
+    },
+    {
+      slug: "privacy",
+      title: "Политика конфиденциальности",
+      body_md: "# Политика конфиденциальности\n\nТекст политики — заполнить в админке.",
+      show_in_footer: true, sort: 2, status: "published",
+    },
+  ];
+  const existingLegal = await client.request(
+    readItems("legal_pages", { fields: ["slug"], limit: -1 }),
+  );
+  const existingLegalSlugs = new Set(existingLegal.map(p => p.slug));
+  const newLegal = legalPagesData.filter(p => !existingLegalSlugs.has(p.slug));
+  if (newLegal.length) {
+    const created = await client.request(createItems("legal_pages", newLegal));
+    console.log(`[seed] ✓ inserted ${created.length} legal pages`);
+  } else {
+    console.log("[seed] legal_pages already populated, skipping");
   }
 
   // Customer role + policy + permissions
