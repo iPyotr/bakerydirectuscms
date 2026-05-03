@@ -56,6 +56,7 @@ export interface DirectusSchema {
   }>;
   promotions: Array<{
     id: string;
+    sort?: number | null;
     slug: string;
     title: string;
     tag?: string | null;
