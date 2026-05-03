@@ -247,6 +247,13 @@ cd frontend && pnpm schema:snapshot
 npx directus schema apply /path/to/directus-snapshot.json
 ```
 
+## Production env
+
+Set in production environment (Portainer stack env):
+
+- `DIRECTUS_USE_FALLBACK_MOCKS=false` — disables silent mock-data fallback in `frontend/src/lib/api.ts`. Without this, Directus outages are masked by stale fallback data and pages render with mock content.
+- `USE_DIRECTUS=true` — frontend reads from Directus instead of local mocks.
+
 ## Откат
 
 Portainer → Stacks → bakery → Edit → `FRONTEND_IMAGE_TAG=<sha>` → Update. Для Directus — смените `DIRECTUS_VERSION`.
