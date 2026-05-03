@@ -1519,7 +1519,7 @@ async function ensureRevalidateFlow() {
       options: {
         type: "action",
         scope: ["items.create", "items.update", "items.delete"],
-        collections: ["categories", "products", "globals", "nav_menu_items", "benefits", "legal_pages"],
+        collections: ["categories", "products", "globals", "nav_menu_items", "benefits", "legal_pages", "promotions"],
       },
     }),
   );
@@ -1770,6 +1770,25 @@ async function main() {
     }
     const created = await client.request(createItems("hero_slides", newSlides));
     console.log(`[seed] ✓ inserted ${created.length} hero slides`);
+  }
+
+  // Promotions
+  console.log("\n[seed] ==== PROMOTIONS ====");
+  const promotionsData = [
+    { slug: "buns-2-plus-1", title: "2+1 на сдобные булочки", description: "Каждая третья булочка в подарок. Каждое воскресенье.", tag: "new", sort: 1, status: "published" },
+    { slug: "first-order-cashback-10", title: "Кэшбэк 10% на первый заказ", description: "Зарегистрируйтесь через Яндекс ID и получите бонусы на следующий заказ.", tag: "hit", discount_percent: 10, sort: 2, status: "published" },
+    { slug: "happy-hours", title: "Счастливые часы 17:00–19:00", description: "Скидка 20% на выпечку дня. Каждый будний день.", tag: "sale", discount_percent: 20, sort: 3, status: "published" },
+  ];
+  const existingPromos = await client.request(
+    readItems("promotions", { fields: ["slug"], limit: -1 }),
+  );
+  const existingPromoSlugs = new Set(existingPromos.map(p => p.slug));
+  const newPromos = promotionsData.filter(p => !existingPromoSlugs.has(p.slug));
+  if (newPromos.length) {
+    const created = await client.request(createItems("promotions", newPromos));
+    console.log(`[seed] ✓ inserted ${created.length} promotions`);
+  } else {
+    console.log("[seed] promotions already populated, skipping");
   }
 
   // Locations
