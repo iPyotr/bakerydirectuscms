@@ -430,6 +430,99 @@ const globalsFields = [
     },
     schema: {},
   },
+  // ----- NEW: SEO + slogans -----
+  {
+    field: "tagline_main",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "Главный слоган (используется в OG, заголовках)" },
+    schema: {},
+  },
+  {
+    field: "tagline_accent",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "Акцентная часть слогана (italic в OG)" },
+    schema: {},
+  },
+  {
+    field: "meta_title",
+    type: "string",
+    meta: { interface: "input", width: "full", note: "Default <title> сайта" },
+    schema: {},
+  },
+  {
+    field: "meta_description",
+    type: "text",
+    meta: { interface: "input-multiline", width: "full", note: "Default meta description (до 160)" },
+    schema: {},
+  },
+  {
+    field: "seo_keywords",
+    type: "json",
+    meta: { interface: "tags", width: "full", note: "SEO keywords" },
+    schema: {},
+  },
+  {
+    field: "theme_color",
+    type: "string",
+    meta: { interface: "select-color", width: "half", note: "manifest theme_color" },
+    schema: { default_value: "#d62929" },
+  },
+  {
+    field: "background_color",
+    type: "string",
+    meta: { interface: "select-color", width: "half", note: "manifest background_color" },
+    schema: { default_value: "#eae6e1" },
+  },
+  {
+    field: "payment_methods",
+    type: "json",
+    meta: { interface: "tags", width: "full", note: "МИР, Visa, Mastercard, СБП, ..." },
+    schema: {},
+  },
+  {
+    field: "opens_at",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "Время открытия HH:MM (для JSON-LD)" },
+    schema: { default_value: "08:00" },
+  },
+  {
+    field: "closes_at",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "Время закрытия HH:MM" },
+    schema: { default_value: "20:00" },
+  },
+  // ----- NEW: contact roles -----
+  {
+    field: "email_general",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "Общий email (заменит legacy email)" },
+    schema: {},
+  },
+  {
+    field: "email_hr",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "HR / вакансии" },
+    schema: {},
+  },
+  {
+    field: "email_b2b",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "B2B / опт" },
+    schema: {},
+  },
+  // ----- NEW: about-page sections -----
+  {
+    field: "production_md",
+    type: "text",
+    meta: { interface: "input-rich-text-md", width: "full", note: "Секция «Производство» на /about" },
+    schema: {},
+  },
+  {
+    field: "careers_md",
+    type: "text",
+    meta: { interface: "input-rich-text-md", width: "full", note: "Секция «Вакансии» на /about" },
+    schema: {},
+  },
 ];
 
 // --------------------- seed data ---------------------
@@ -488,6 +581,33 @@ const globalsData = {
     instagram: "https://instagram.com/delovkusa",
   },
   app_links: { appStore: "#", googlePlay: "#", ruStore: "#" },
+  tagline_main: "Свежая выпечка",
+  tagline_accent: "каждый день",
+  meta_title: "Дело вкуса — свежая выпечка каждый день",
+  meta_description:
+    "Ремесленная пекарня и собственное производство в Корсакове: хлеб, сытная и сладкая выпечка, курица гриль, шаурма и полуфабрикаты ручной лепки.",
+  seo_keywords: [
+    "пекарня корсаков",
+    "свежая выпечка",
+    "хлеб корсаков",
+    "курица гриль",
+    "шаурма корсаков",
+    "пельмени ручной лепки",
+    "самовывоз выпечка",
+    "дело вкуса",
+  ],
+  theme_color: "#d62929",
+  background_color: "#eae6e1",
+  payment_methods: ["МИР", "Visa", "Mastercard", "СБП"],
+  opens_at: "08:00",
+  closes_at: "20:00",
+  email_general: "hello@delovkusa.ru",
+  email_hr: "hr@delovkusa.ru",
+  email_b2b: "b2b@delovkusa.ru",
+  production_md:
+    "Ежедневная пекарня работает с 04:00, лепка полуфабрикатов — круглосуточно. Всё оборудование сертифицировано, процессы проходят ежедневный контроль качества.",
+  careers_md:
+    "Мы всегда рады талантливым пекарям, кондитерам и продавцам. Пишите нам — расскажем об открытых позициях.",
 };
 
 // --------------------- file upload helper ---------------------
@@ -1439,16 +1559,28 @@ async function main() {
 
   // 5) Globals (singleton)
   console.log("\n[seed] ==== GLOBALS ====");
+  let existingGlobals = null;
   try {
-    const existing = await client.request(readSingleton("globals"));
-    if (existing?.brand_name) {
-      console.log("[seed] globals already populated, skipping");
-    } else {
-      throw new Error("empty singleton");
-    }
+    existingGlobals = await client.request(readSingleton("globals"));
   } catch {
+    existingGlobals = null;
+  }
+  const isFirstRun = !existingGlobals?.brand_name;
+  if (isFirstRun) {
     await client.request(updateSingleton("globals", globalsData));
-    console.log("[seed] ✓ globals populated");
+    console.log("[seed] ✓ globals populated (initial)");
+  } else {
+    // Patch only new keys whose value is currently null/undefined.
+    const patch = {};
+    for (const [k, v] of Object.entries(globalsData)) {
+      if (existingGlobals[k] == null) patch[k] = v;
+    }
+    if (Object.keys(patch).length) {
+      await client.request(updateSingleton("globals", patch));
+      console.log(`[seed] ✓ globals patched with new keys: ${Object.keys(patch).join(", ")}`);
+    } else {
+      console.log("[seed] globals already complete, skipping");
+    }
   }
 
   // Hero slides
