@@ -71,6 +71,15 @@ async function login() {
   console.log(`[seed] Using static admin token against ${DIRECTUS_URL}`);
 }
 
+// Source of truth for "popular products" home block. NULL = excluded.
+const POPULARITY_RANKS = {
+  "bread-loaf": 1,
+  "echpochmak": 2,
+  "poppy-buns": 3,
+  "frozen-pelmeni": 4,
+  "mini-pizza": 5,
+};
+
 // --------------------- schema helpers ---------------------
 async function getExistingCollections() {
   const collections = await client.request(readCollections());
@@ -532,16 +541,16 @@ const categoriesData = [
 ];
 
 const productsData = [
-  { slug: "bread-loaf", title: "Хлеб «Домашний»", category: "bread", image: "bread-loaf", price: 65, weight: "450 г", tag: "hit", available: true, popularity_rank: 1, description: "Формовой хлеб на пшеничной муке первого сорта, без улучшителей и консервантов." },
-  { slug: "echpochmak", title: "Эчпочмак (Самса)", category: "savory-pastry", image: "echpochmak", price: 75, weight: "120 г", available: true, popularity_rank: 2, description: "Треугольник с мясом и картофелем, запечённый в слоёном тесте." },
-  { slug: "mini-pizza", title: "Мини-пицца «Школьная»", category: "savory-pastry", image: "mini-pizza", price: 95, weight: "120 г", available: true, popularity_rank: 5, description: "Любимая школьная пицца: томатный соус, колбаса, сыр." },
+  { slug: "bread-loaf", title: "Хлеб «Домашний»", category: "bread", image: "bread-loaf", price: 65, weight: "450 г", tag: "hit", available: true, description: "Формовой хлеб на пшеничной муке первого сорта, без улучшителей и консервантов." },
+  { slug: "echpochmak", title: "Эчпочмак (Самса)", category: "savory-pastry", image: "echpochmak", price: 75, weight: "120 г", available: true, description: "Треугольник с мясом и картофелем, запечённый в слоёном тесте." },
+  { slug: "mini-pizza", title: "Мини-пицца «Школьная»", category: "savory-pastry", image: "mini-pizza", price: 95, weight: "120 г", available: true, description: "Любимая школьная пицца: томатный соус, колбаса, сыр." },
   { slug: "cheburek", title: "Чебурек с говядиной", category: "savory-pastry", image: "cheburek", price: 110, weight: "150 г", tag: "hit", available: true, description: "Тонкое тесто, сочная начинка из рубленой говядины с луком." },
   { slug: "belyash", title: "Беляш с мясом", category: "savory-pastry", image: "belyash", price: 85, weight: "130 г", available: true, description: "Жаренный во фритюре беляш с рубленой говядиной." },
   { slug: "big-closed-pie", title: "Большой закрытый пирог", category: "savory-pastry", image: "big-closed-pie", price: 520, weight: "900 г", available: true, description: "Большой семейный пирог с начинкой на выбор." },
   { slug: "fried-flatbread", title: "Жареная лепёшка", category: "savory-pastry", image: "fried-flatbread", price: 60, weight: "110 г", available: true },
   { slug: "savory-pies", title: "Пирожки несладкие", category: "savory-pastry", image: "savory-pies", price: 55, weight: "90 г", available: true, description: "Пирожки ассорти: картошка, капуста, яйцо с луком." },
   { slug: "tvorog-triangle", title: "Треугольный пирожок с творогом", category: "savory-pastry", image: "tvorog-triangle", price: 70, weight: "100 г", available: true, description: "Открытый треугольник с нежным творогом и сметанной заливкой." },
-  { slug: "poppy-buns", title: "Сдобный узел с маком", category: "sweet-pastry", image: "poppy-buns", price: 55, weight: "120 г", tag: "new", available: true, popularity_rank: 3, description: "Мягкая сдоба с маковой начинкой, посыпанная сахарной пудрой." },
+  { slug: "poppy-buns", title: "Сдобный узел с маком", category: "sweet-pastry", image: "poppy-buns", price: 55, weight: "120 г", tag: "new", available: true, description: "Мягкая сдоба с маковой начинкой, посыпанная сахарной пудрой." },
   { slug: "vatrushka", title: "Ватрушка с творогом", category: "sweet-pastry", image: "vatrushka", price: 70, weight: "100 г", available: true, description: "Сдоба с ванильным творогом и сахарной пудрой." },
   { slug: "poppy-roll", title: "Рулет с маком", category: "sweet-pastry", image: "poppy-roll", price: 140, weight: "300 г", available: true, description: "Сдобный рулет с маковой начинкой." },
   { slug: "figured-buns", title: "Фигурные булочки", category: "sweet-pastry", image: "figured-buns", price: 45, weight: "80 г", available: true, description: "Сдобные булочки-косички с ванилью." },
@@ -549,7 +558,7 @@ const productsData = [
   { slug: "plain-bun", title: "Булочка без начинки", category: "sweet-pastry", image: "plain-bun", price: 35, weight: "70 г", available: true, description: "Классическая сдобная булочка к чаю." },
   { slug: "grill-chicken", title: "Курица гриль", category: "ready-meals", image: "grill-chicken", price: 450, weight: "1.2 кг", tag: "hit", available: true, description: "Фермерская курица в фирменном маринаде. Подаётся горячей." },
   { slug: "shaurma", title: "Шаурма «Классик»", category: "ready-meals", image: "shaurma", price: 220, weight: "320 г", available: true, description: "Лаваш, курица гриль, овощи, фирменный соус." },
-  { slug: "frozen-pelmeni", title: "Пельмени ручной лепки", category: "frozen", image: "frozen-pelmeni", price: 320, weight: "500 г", available: true, popularity_rank: 4, description: "Классические пельмени, начинка — свинина с говядиной. Ручная лепка." },
+  { slug: "frozen-pelmeni", title: "Пельмени ручной лепки", category: "frozen", image: "frozen-pelmeni", price: 320, weight: "500 г", available: true, description: "Классические пельмени, начинка — свинина с говядиной. Ручная лепка." },
   { slug: "frozen-vareniki", title: "Вареники с вишней", category: "frozen", image: "frozen-vareniki", price: 280, weight: "500 г", tag: "new", available: true, description: "Сладкие вареники с вишневой начинкой без сахара." },
   { slug: "frozen-pies", title: "Замороженные пирожки", category: "frozen", image: "frozen-pies", price: 220, weight: "400 г", available: true, description: "Полуфабрикаты для выпечки дома: картофель, капуста, мясо." },
   { slug: "frozen-buns", title: "Замороженные булочки", category: "frozen", image: "frozen-buns", price: 180, weight: "360 г", available: true, description: "Сдоба в заморозке: дома осталось только разогреть." },
@@ -1540,7 +1549,7 @@ async function main() {
       weight: p.weight,
       tag: p.tag ?? null,
       available: p.available,
-      popularity_rank: p.popularity_rank ?? null,
+      popularity_rank: POPULARITY_RANKS[p.slug] ?? null,
       description: p.description ?? null,
       image: productImageIds[p.slug] ?? null,
       status: "published",
@@ -1556,14 +1565,7 @@ async function main() {
 
   // Backfill popularity_rank for products that already exist (seed only inserts new).
   console.log("\n[seed] ==== POPULARITY ====");
-  const popularityMap = {
-    "bread-loaf": 1,
-    "echpochmak": 2,
-    "poppy-buns": 3,
-    "frozen-pelmeni": 4,
-    "mini-pizza": 5,
-  };
-  for (const [slug, rank] of Object.entries(popularityMap)) {
+  for (const [slug, rank] of Object.entries(POPULARITY_RANKS)) {
     const found = await client.request(
       readItems("products", { filter: { slug: { _eq: slug } }, fields: ["id", "popularity_rank"], limit: 1 }),
     );
