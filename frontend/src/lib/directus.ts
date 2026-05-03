@@ -20,7 +20,9 @@ export interface DirectusSchema {
     image?: string | null;
     slider_image?: string | null;
     sort?: number | null;
-    products_count?: number | null;
+    meta_title?: string | null;
+    meta_description?: string | null;
+    og_image?: string | null;
   }>;
   products: Array<{
     id: string;
@@ -35,6 +37,10 @@ export interface DirectusSchema {
     description?: string | null;
     status?: "published" | "draft" | "archived";
     available?: boolean | null;
+    popularity_rank?: number | null;
+    meta_title?: string | null;
+    meta_description?: string | null;
+    og_image?: string | null;
   }>;
   hero_slides: Array<{
     id: string;
@@ -45,6 +51,19 @@ export interface DirectusSchema {
     image?: string | null;
     cta_label?: string | null;
     cta_href?: string | null;
+    active_from?: string | null;
+    active_until?: string | null;
+  }>;
+  promotions: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    tag?: string | null;
+    description?: string | null;
+    image?: string | null;
+    discount_percent?: number | null;
+    active_from?: string | null;
+    active_until?: string | null;
   }>;
   locations: Array<{
     id: string;
@@ -60,17 +79,55 @@ export interface DirectusSchema {
     brand_name: string;
     legal_name?: string | null;
     inn?: string | null;
-    phone: string;
+    phone?: string | null;
     email?: string | null;
-    address: string;
+    address?: string | null;
     address_short?: string | null;
-    working_hours: string;
+    working_hours?: string | null;
     about_short?: string | null;
     about_long?: string | null;
+    production_md?: string | null;
+    careers_md?: string | null;
     location?: { lat?: number | null; lng?: number | null; zoom?: number | null } | null;
     social?: Record<string, string | undefined> | null;
     app_links?: Record<string, string | undefined> | null;
+    email_general?: string | null;
+    email_hr?: string | null;
+    email_b2b?: string | null;
+    tagline_main?: string | null;
+    tagline_accent?: string | null;
+    meta_title?: string | null;
+    meta_description?: string | null;
+    seo_keywords?: string[] | null;
+    theme_color?: string | null;
+    background_color?: string | null;
+    payment_methods?: string[] | null;
+    opens_at?: string | null;
+    closes_at?: string | null;
   };
+  nav_menu_items: Array<{
+    id: string;
+    location: "header" | "footer-customers" | "footer-company" | "mobile-tab";
+    label: string;
+    href: string;
+    icon?: string | null;
+    sort?: number | null;
+  }>;
+  benefits: Array<{
+    id: string;
+    icon: string;
+    title: string;
+    description?: string | null;
+    sort?: number | null;
+  }>;
+  legal_pages: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    body_md: string;
+    show_in_footer?: boolean | null;
+    sort?: number | null;
+  }>;
 }
 
 export const directus = createDirectus<DirectusSchema>(DIRECTUS_URL).with(rest());
