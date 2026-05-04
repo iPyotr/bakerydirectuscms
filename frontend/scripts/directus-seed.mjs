@@ -1191,6 +1191,7 @@ const publicPermissions = [
       "image",
       "description",
       "sort",
+      "popularity_rank",
       "meta_title",
       "meta_description",
       "og_image",
