@@ -55,6 +55,13 @@ export interface Globals {
   productionMd?: string;
   careersMd?: string;
 
+  // /about page UI labels
+  aboutPageTitle?: string;
+  productionHeading?: string;
+  careersHeading?: string;
+  careersEmailIntro?: string;
+  innLabel?: string;
+
   social: {
     vk?: string;
     telegram?: string;

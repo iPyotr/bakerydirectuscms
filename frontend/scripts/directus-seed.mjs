@@ -487,6 +487,37 @@ const globalsFields = [
     meta: { interface: "input-rich-text-md", width: "full", note: "Секция «Вакансии» на /about" },
     schema: {},
   },
+  // ----- /about page UI labels -----
+  {
+    field: "about_page_title",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "Заголовок страницы /about (H1 + <title>)" },
+    schema: { default_value: "О компании" },
+  },
+  {
+    field: "production_heading",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "Заголовок секции «Производство» на /about" },
+    schema: { default_value: "Производство" },
+  },
+  {
+    field: "careers_heading",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "Заголовок секции «Вакансии» на /about" },
+    schema: { default_value: "Вакансии" },
+  },
+  {
+    field: "careers_email_intro",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "Текст-обёртка перед email вакансий, например: «Пишите на»" },
+    schema: { default_value: "Пишите на" },
+  },
+  {
+    field: "inn_label",
+    type: "string",
+    meta: { interface: "input", width: "half", note: "Префикс перед номером ИНН, например: «ИНН»" },
+    schema: { default_value: "ИНН" },
+  },
 ];
 
 // --------------------- seed data ---------------------
@@ -566,6 +597,11 @@ const globalsData = {
     "Ежедневная пекарня работает с 04:00, лепка полуфабрикатов — круглосуточно. Всё оборудование сертифицировано, процессы проходят ежедневный контроль качества.",
   careers_md:
     "Мы всегда рады талантливым пекарям, кондитерам и продавцам. Пишите нам — расскажем об открытых позициях.",
+  about_page_title: "О компании",
+  production_heading: "Производство",
+  careers_heading: "Вакансии",
+  careers_email_intro: "Пишите на",
+  inn_label: "ИНН",
 };
 
 // --------------------- file upload helper ---------------------
@@ -1206,6 +1242,8 @@ const publicPermissions = [
       "email_general", "email_hr", "email_b2b",
       "about_short", "about_long",
       "production_md", "careers_md",
+      "about_page_title", "production_heading", "careers_heading",
+      "careers_email_intro", "inn_label",
       "social", "app_links",
       "tagline_main", "tagline_accent",
       "meta_title", "meta_description", "seo_keywords",

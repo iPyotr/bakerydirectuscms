@@ -14,6 +14,12 @@ export const mockGlobals: Globals = {
   careersMd:
     "Мы всегда рады талантливым пекарям, кондитерам и продавцам. Пишите нам — расскажем об открытых позициях.",
 
+  aboutPageTitle: "О компании",
+  productionHeading: "Производство",
+  careersHeading: "Вакансии",
+  careersEmailIntro: "Пишите на",
+  innLabel: "ИНН",
+
   social: {
     vk: "https://vk.com/delovkusa",
     telegram: "https://t.me/delovkusa",

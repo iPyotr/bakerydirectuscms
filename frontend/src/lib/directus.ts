@@ -84,6 +84,11 @@ export interface DirectusSchema {
     about_long?: string | null;
     production_md?: string | null;
     careers_md?: string | null;
+    about_page_title?: string | null;
+    production_heading?: string | null;
+    careers_heading?: string | null;
+    careers_email_intro?: string | null;
+    inn_label?: string | null;
     social?: Record<string, string | undefined> | null;
     app_links?: Record<string, string | undefined> | null;
     email_general?: string | null;
