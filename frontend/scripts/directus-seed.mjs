@@ -1478,11 +1478,17 @@ async function ensurePublicPermissions() {
 
 // --------------------- revalidate flow ---------------------
 async function ensureRevalidateFlow() {
-  const siteUrl = process.env.SITE_URL;
+  // REVALIDATE_TARGET_URL — куда Directus стучит при изменении контента.
+  // Должен быть достижим ИЗНУТРИ Directus-контейнера. На проде это либо
+  // public URL фронта (https://delovkusa.openlabio.ru), либо internal
+  // docker-сетевое имя (http://bakery_frontend:3000). НЕ localhost — он
+  // указывает на сам Directus-контейнер.
+  // SITE_URL остаётся для metadata/OG/sitemap фронта (другая семантика).
+  const targetUrl = process.env.REVALIDATE_TARGET_URL ?? process.env.SITE_URL;
   const secret = process.env.REVALIDATE_SECRET;
-  if (!siteUrl || !secret) {
+  if (!targetUrl || !secret) {
     console.log(
-      "\n[seed] ==== REVALIDATE FLOW ==== SKIP (SITE_URL / REVALIDATE_SECRET not set)",
+      "\n[seed] ==== REVALIDATE FLOW ==== SKIP (REVALIDATE_TARGET_URL/SITE_URL or REVALIDATE_SECRET not set)",
     );
     return;
   }
@@ -1524,7 +1530,7 @@ async function ensureRevalidateFlow() {
       position_y: 1,
       options: {
         method: "POST",
-        url: `${siteUrl}/api/revalidate?secret=${secret}`,
+        url: `${targetUrl}/api/revalidate?secret=${secret}`,
         body: "{{$trigger}}",
         headers: [{ header: "Content-Type", value: "application/json" }],
       },
@@ -1768,16 +1774,16 @@ async function main() {
     { slug: "first-order-cashback-10", title: "Кэшбэк 10% на первый заказ", description: "Зарегистрируйтесь через Яндекс ID и получите бонусы на следующий заказ.", tag: "hit", discount_percent: 10, sort: 2, status: "published" },
     { slug: "happy-hours", title: "Счастливые часы 17:00–19:00", description: "Скидка 20% на выпечку дня. Каждый будний день.", tag: "sale", discount_percent: 20, sort: 3, status: "published" },
   ];
+  // Сидим только при ПУСТОЙ коллекции. Slug-based дедуп воскрешал бы записи,
+  // удалённые оператором (zombie data) — поэтому проверяем total count.
   const existingPromos = await client.request(
-    readItems("promotions", { fields: ["slug"], limit: -1 }),
+    readItems("promotions", { fields: ["id"], limit: 1 }),
   );
-  const existingPromoSlugs = new Set(existingPromos.map(p => p.slug));
-  const newPromos = promotionsData.filter(p => !existingPromoSlugs.has(p.slug));
-  if (newPromos.length) {
-    const created = await client.request(createItems("promotions", newPromos));
-    console.log(`[seed] ✓ inserted ${created.length} promotions`);
+  if (!existingPromos.length) {
+    const created = await client.request(createItems("promotions", promotionsData));
+    console.log(`[seed] ✓ inserted ${created.length} promotions (initial seed)`);
   } else {
-    console.log("[seed] promotions already populated, skipping");
+    console.log("[seed] promotions already populated (any record), skipping");
   }
 
   // Locations
@@ -1817,27 +1823,17 @@ async function main() {
     { location: "mobile-tab", label: "Акции", href: "/promotions", icon: "promo", sort: 4 },
     { location: "mobile-tab", label: "Профиль", href: "/profile", icon: "profile", sort: 5 },
   ].map(d => ({ ...d, status: "published" }));
+  // Сидим только при ПУСТОЙ коллекции. Бэкфилл по label воскрешал бы пункты,
+  // удалённые оператором (zombie). Если оператор сознательно убрал «Программу
+  // лояльности» — она не должна возвращаться при следующем seed.
   const existingNavItems = await client.request(
     readItems("nav_menu_items", { fields: ["id"], limit: 1 }),
   );
-  if (existingNavItems.length) {
-    // Backfill: insert any items from navData that are NOT already in the live DB.
-    // Match by (location, label) — labels are user-facing and stable; sorts can
-    // shift when new items are inserted in the middle of a list.
-    const existing = await client.request(
-      readItems("nav_menu_items", { fields: ["location", "label"], limit: -1 }),
-    );
-    const existingKeys = new Set(existing.map(r => `${r.location}:${r.label}`));
-    const toInsert = navData.filter(d => !existingKeys.has(`${d.location}:${d.label}`));
-    if (toInsert.length) {
-      const created = await client.request(createItems("nav_menu_items", toInsert));
-      console.log(`[seed] ✓ backfilled ${created.length} new nav items`);
-    } else {
-      console.log("[seed] nav_menu_items already complete, skipping");
-    }
-  } else {
+  if (!existingNavItems.length) {
     const created = await client.request(createItems("nav_menu_items", navData));
-    console.log(`[seed] ✓ inserted ${created.length} nav items`);
+    console.log(`[seed] ✓ inserted ${created.length} nav items (initial seed)`);
+  } else {
+    console.log("[seed] nav_menu_items already populated (any record), skipping");
   }
 
   // Benefits
@@ -1848,16 +1844,15 @@ async function main() {
     { icon: "heart", title: "Готовим с душой", description: "Для вас и вашей семьи — как дома, только вкуснее", sort: 3, status: "published" },
     { icon: "pickup", title: "Удобный самовывоз", description: "Быстро, без очередей, с бесконтактной оплатой", sort: 4, status: "published" },
   ];
+  // Сидим только при ПУСТОЙ коллекции (не воскрешать удалённые оператором).
   const existingBenefits = await client.request(
-    readItems("benefits", { fields: ["title"], limit: -1 }),
+    readItems("benefits", { fields: ["id"], limit: 1 }),
   );
-  const existingTitles = new Set(existingBenefits.map(b => b.title));
-  const newBenefits = benefitsData.filter(b => !existingTitles.has(b.title));
-  if (newBenefits.length) {
-    const created = await client.request(createItems("benefits", newBenefits));
-    console.log(`[seed] ✓ inserted ${created.length} benefits`);
+  if (!existingBenefits.length) {
+    const created = await client.request(createItems("benefits", benefitsData));
+    console.log(`[seed] ✓ inserted ${created.length} benefits (initial seed)`);
   } else {
-    console.log("[seed] benefits already populated, skipping");
+    console.log("[seed] benefits already populated (any record), skipping");
   }
 
   // Legal pages
@@ -1876,16 +1871,15 @@ async function main() {
       show_in_footer: true, sort: 2, status: "published",
     },
   ];
+  // Сидим только при ПУСТОЙ коллекции (не воскрешать удалённые оператором).
   const existingLegal = await client.request(
-    readItems("legal_pages", { fields: ["slug"], limit: -1 }),
+    readItems("legal_pages", { fields: ["id"], limit: 1 }),
   );
-  const existingLegalSlugs = new Set(existingLegal.map(p => p.slug));
-  const newLegal = legalPagesData.filter(p => !existingLegalSlugs.has(p.slug));
-  if (newLegal.length) {
-    const created = await client.request(createItems("legal_pages", newLegal));
-    console.log(`[seed] ✓ inserted ${created.length} legal pages`);
+  if (!existingLegal.length) {
+    const created = await client.request(createItems("legal_pages", legalPagesData));
+    console.log(`[seed] ✓ inserted ${created.length} legal pages (initial seed)`);
   } else {
-    console.log("[seed] legal_pages already populated, skipping");
+    console.log("[seed] legal_pages already populated (any record), skipping");
   }
 
   // Customer role + policy + permissions

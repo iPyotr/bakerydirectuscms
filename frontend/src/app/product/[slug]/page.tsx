@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { fetchCategories, fetchProduct, fetchProducts } from "@/lib/api";
 import { assetUrl, formatPrice } from "@/lib/format";
 
-export const revalidate = 300;
+export const revalidate = 60;
 
 export async function generateMetadata(
   props: PageProps<"/product/[slug]">,

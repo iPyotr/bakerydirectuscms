@@ -5,7 +5,7 @@ import { CategoryCard } from "@/components/product/category-card";
 import { fetchCategories, fetchProducts } from "@/lib/api";
 
 export const metadata = { title: "Каталог" };
-export const revalidate = 300;
+export const revalidate = 60;
 
 export default async function CatalogPage() {
   const [categories, products] = await Promise.all([fetchCategories(), fetchProducts()]);

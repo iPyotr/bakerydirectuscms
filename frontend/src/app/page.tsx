@@ -6,7 +6,7 @@ import { Benefits } from "@/components/home/benefits";
 import { CategorySliders } from "@/components/home/category-sliders";
 import { fetchBenefits, fetchCategories, fetchHeroSlides, fetchPopularProducts } from "@/lib/api";
 
-export const revalidate = 300;
+export const revalidate = 60;
 
 export default async function HomePage() {
   const [categories, popular, heroSlides, benefits] = await Promise.all([

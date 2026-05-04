@@ -6,7 +6,7 @@ import { fetchGlobals, fetchLocations } from "@/lib/api";
 import { assetUrl } from "@/lib/format";
 
 export const metadata = { title: "Контакты" };
-export const revalidate = 300;
+export const revalidate = 60;
 
 export default async function ContactsPage() {
   const [globals, locations] = await Promise.all([fetchGlobals(), fetchLocations()]);

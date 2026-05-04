@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { Container } from "@/components/ui/container";
 import { fetchLegalPage } from "@/lib/api";
 
-export const revalidate = 300;
+export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

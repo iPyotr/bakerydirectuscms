@@ -5,7 +5,7 @@ import { fetchPromotions } from "@/lib/api";
 import { assetUrl } from "@/lib/format";
 
 export const metadata = { title: "Акции" };
-export const revalidate = 300;
+export const revalidate = 60;
 
 export default async function PromotionsPage() {
   const promos = await fetchPromotions();

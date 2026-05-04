@@ -35,6 +35,12 @@ const caveat = Caveat({
 
 const siteUrl = process.env.SITE_URL ?? "https://delovkusa.openlabio.ru";
 
+// Layout (header/footer + JSON-LD) обновляется каждые 60 секунд.
+// Directus revalidate flow не triggerит webhook (исследуется); короткий
+// revalidate гарантирует, что правки в админке прилетят на фронт максимум
+// за минуту, без ручного дёрганья /api/revalidate.
+export const revalidate = 60;
+
 export async function generateMetadata(): Promise<Metadata> {
   const g = await fetchGlobals();
   const taglineSuffix = [g.taglineMain, g.taglineAccent].filter(Boolean).join(" ").trim();

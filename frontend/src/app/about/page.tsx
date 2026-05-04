@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { Container } from "@/components/ui/container";
 import { fetchGlobals } from "@/lib/api";
 
-export const revalidate = 300;
+export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
   const g = await fetchGlobals();

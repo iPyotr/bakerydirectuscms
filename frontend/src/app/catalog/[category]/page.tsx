@@ -5,7 +5,7 @@ import { Container } from "@/components/ui/container";
 import { ProductCard } from "@/components/product/product-card";
 import { fetchCategories, fetchProducts } from "@/lib/api";
 
-export const revalidate = 300;
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   const categories = await fetchCategories();
