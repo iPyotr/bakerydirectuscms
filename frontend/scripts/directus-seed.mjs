@@ -525,9 +525,11 @@ const categoriesData = [
   { slug: "bread", title: "Хлеб", subtitle: "Ремесленный каждый день", sort: 1 },
   { slug: "savory-pastry", title: "Сытная выпечка", subtitle: "Пирожки, чебуреки, беляши", sort: 2 },
   { slug: "sweet-pastry", title: "Сладкая выпечка", subtitle: "Сдоба с маком и творогом", sort: 3 },
-  { slug: "ready-meals", title: "Готовые блюда", subtitle: "Гриль, шаурма, обеды", sort: 4 },
-  { slug: "frozen", title: "Полуфабрикаты", subtitle: "Ручная лепка", sort: 5 },
-  { slug: "drinks", title: "Напитки", subtitle: "Соки, лимонады, чай", sort: 6 },
+  { slug: "breakfast", title: "Завтраки", subtitle: "Сытно с утра — рабочие и туристические", sort: 4 },
+  { slug: "snacks", title: "Закуски / Фри", subtitle: "Хрустящее на ходу", sort: 5 },
+  { slug: "ready-meals", title: "Готовые блюда", subtitle: "Гриль, шаурма, обеды", sort: 6 },
+  { slug: "frozen", title: "Полуфабрикаты", subtitle: "Ручная лепка", sort: 7 },
+  { slug: "drinks", title: "Напитки", subtitle: "Чай, кофе, компот, лимонады", sort: 8 },
 ];
 
 const productsData = [
@@ -554,6 +556,48 @@ const productsData = [
   { slug: "frozen-buns", title: "Замороженные булочки", category: "frozen", image: "frozen-buns", price: 180, weight: "360 г", available: true, description: "Сдоба в заморозке: дома осталось только разогреть." },
   { slug: "dough-balls", title: "Заготовки теста", category: "frozen", image: "dough-balls", price: 140, weight: "500 г", available: true, description: "Шарики дрожжевого теста на любой выпечки." },
   { slug: "drinks-set", title: "Лимонад «Тархун»", category: "drinks", image: "drinks-set", price: 120, weight: "0.5 л", available: true, description: "Натуральный лимонад без красителей." },
+  // ===== Расширение по pre/меню.csv (2026-05-05) =====
+  // Сытная выпечка (+17)
+  { slug: "cheburek-pork-beef", title: "Чебурек (свинина-говядина)", category: "savory-pastry", price: 160, available: true },
+  { slug: "cheburek-chicken", title: "Чебурек (курица)", category: "savory-pastry", price: 160, available: true },
+  { slug: "belyash-chicken", title: "Беляш (курица)", category: "savory-pastry", price: 160, available: true },
+  { slug: "belyash-pork-beef", title: "Беляш (свинина-говядина)", category: "savory-pastry", price: 180, available: true },
+  { slug: "pie-cabbage", title: "Пирожок (капуста)", category: "savory-pastry", price: 130, available: true },
+  { slug: "pie-cabbage-meat", title: "Пирожок (капуста-мясо)", category: "savory-pastry", price: 140, available: true },
+  { slug: "pie-onion-egg", title: "Пирожок (лук-яйцо)", category: "savory-pastry", price: 130, available: true },
+  { slug: "pie-rice-meat", title: "Пирожок (рис-мясо)", category: "savory-pastry", price: 140, available: true },
+  { slug: "pie-potato", title: "Пирожок (картошка)", category: "savory-pastry", price: 130, available: true },
+  { slug: "pie-liver", title: "Пирожок (рис-печень / печень-мясо)", category: "savory-pastry", price: 140, available: true },
+  { slug: "sausage-roll", title: "Сосиска в тесте", category: "savory-pastry", price: 120, available: true },
+  { slug: "cutlet-roll", title: "Котлета в тесте", category: "savory-pastry", price: 160, available: true },
+  { slug: "pizza", title: "Пицца", category: "savory-pastry", price: 160, available: true },
+  { slug: "pyanse", title: "Пян-се (капуста, ким-ча)", category: "savory-pastry", price: 160, available: true },
+  { slug: "shanezhka-ural", title: "Шанежка Уральская", category: "savory-pastry", price: 180, available: true },
+  { slug: "rastygai-fish", title: "Растягай рыбный", category: "savory-pastry", price: 1, available: true },
+  { slug: "sausage-reflyonaya", title: "Сосиска рефлёная", category: "savory-pastry", price: 1, available: true },
+  // Сладкая выпечка (+2)
+  { slug: "pie-jam", title: "Пирожок (повидло)", category: "sweet-pastry", price: 140, available: true },
+  { slug: "sweet-pies-csv", title: "Пирожки сладкие", category: "sweet-pastry", price: 180, available: true },
+  // Хлеб (+1)
+  { slug: "bread-classic", title: "Хлеб", category: "bread", price: 120, available: true },
+  // Завтраки (+6, новая категория)
+  { slug: "breakfast-worker-cabbage-potato", title: "Рабочий завтрак (картошка-капуста)", category: "breakfast", price: 140, available: true },
+  { slug: "breakfast-worker-cabbage-meat", title: "Рабочий завтрак (капуста-мясо)", category: "breakfast", price: 140, available: true },
+  { slug: "breakfast-tourist-sausage", title: "Завтрак туриста (с сосиской)", category: "breakfast", price: 180, available: true },
+  { slug: "breakfast-tourist-chicken", title: "Завтрак туриста (с курицей)", category: "breakfast", price: 240, available: true },
+  { slug: "pancakes-filled", title: "Блинчики с начинкой", category: "breakfast", price: 90, available: true },
+  { slug: "pancakes-plain", title: "Блинчики без начинки", category: "breakfast", price: 70, available: true },
+  // Закуски / Фри (+4, новая категория)
+  { slug: "donut", title: "Пончик", category: "snacks", price: 80, available: true },
+  { slug: "fries-potato", title: "Картофель фри", category: "snacks", price: 1, available: true },
+  { slug: "fries-wings", title: "Крылья фри", category: "snacks", price: 1, available: true },
+  { slug: "cheese-sticks", title: "Сырные палочки", category: "snacks", price: 1, available: true },
+  // Напитки (+5)
+  { slug: "tea", title: "Чай (чёрный / зелёный)", category: "drinks", price: 80, available: true },
+  { slug: "coffee", title: "Кофе", category: "drinks", price: 130, available: true },
+  { slug: "kompot", title: "Компот", category: "drinks", price: 140, available: true },
+  { slug: "mors", title: "Морс", category: "drinks", price: 1, available: true },
+  { slug: "milkshake", title: "Коктейль молочный", category: "drinks", price: 1, available: true },
 ];
 
 const globalsData = {
@@ -1669,6 +1713,36 @@ async function main() {
     console.log(`[seed] ✓ inserted ${created.length} categories`);
   } else {
     console.log("[seed] categories already populated, skipping");
+  }
+
+  // 3.1) Update sort & subtitle on existing categories that drift from categoriesData.
+  // Seed only inserts; it does not patch existing rows. We need this to support
+  // category re-sorting (e.g. inserting `breakfast` between `sweet-pastry` and
+  // `ready-meals` shifts the latter from sort=4 to sort=6).
+  let catUpdates = 0;
+  for (const desired of categoriesData) {
+    const existing = existingCats.find((c) => c.slug === desired.slug);
+    if (!existing) continue; // newly inserted above — already correct
+    // Re-fetch the row with sort/subtitle so we can compare.
+    const [full] = await client.request(
+      readItems("categories", {
+        filter: { slug: { _eq: desired.slug } },
+        fields: ["id", "sort", "subtitle"],
+        limit: 1,
+      }),
+    );
+    if (!full) continue;
+    const patch = {};
+    if (full.sort !== desired.sort) patch.sort = desired.sort;
+    if (full.subtitle !== desired.subtitle) patch.subtitle = desired.subtitle;
+    if (Object.keys(patch).length) {
+      await client.request(updateItem("categories", full.id, patch));
+      console.log(`[seed]   ✓ ${desired.slug} updated:`, patch);
+      catUpdates++;
+    }
+  }
+  if (catUpdates === 0) {
+    console.log("[seed] all category sorts/subtitles already match");
   }
 
   // 4) Products
