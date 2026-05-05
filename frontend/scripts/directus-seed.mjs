@@ -1687,6 +1687,10 @@ async function main() {
 
   const productImageIds = {};
   for (const p of productsData) {
+    if (!p.image) {
+      productImageIds[p.slug] = null;
+      continue;
+    }
     const img = resolve(root, "public/products", `${p.image}.webp`);
     productImageIds[p.slug] = await uploadIfMissing(img, "products");
   }
